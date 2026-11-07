@@ -14,10 +14,12 @@ A **local-first desktop companion** inspired by Hey Taby. Chat with **your** AI 
 
 ### Windows
 
-1. Download a release `.exe` or build from source (see [BUILD_WINDOWS.md](BUILD_WINDOWS.md)).
+1. Download a release `.exe` or the **Actions** artifact from a successful **Build Windows EXE** run (see [BUILD_WINDOWS.md](BUILD_WINDOWS.md)), or build from source.
 2. Run the app.
 3. Open **Settings**, paste your **API key** and confirm the **API endpoint** (Groq: `https://api.groq.com/openai/v1`).
 4. Optional: pair Physical Taby over BLE — **close the official Taby app first**.
+
+Every push to GitHub builds a Windows `.exe` automatically (workflow: `.github/workflows/build-windows.yml`).
 
 ### Linux
 

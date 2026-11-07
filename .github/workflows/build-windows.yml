@@ -1,0 +1,71 @@
+# Build Windows .exe on every push / PR (and allow manual runs).
+# Artifacts: taby-custom-agent.exe + optional NSIS/MSI under bundle/
+
+name: Build Windows EXE
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build Tauri app (Windows)
+        # Produces src-tauri/target/release/taby-custom-agent.exe
+        # and bundle under src-tauri/target/release/bundle/
+        run: npm run tauri build
+        env:
+          # CI has no signing secrets; unsigned build is fine for v1
+          TAURI_SIGNING_PRIVATE_KEY: ""
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+
+      - name: Locate and list build outputs
+        shell: pwsh
+        run: |
+          $release = "src-tauri/target/release"
+          Write-Host "=== Release dir ==="
+          Get-ChildItem -Path $release -Filter "*.exe" -ErrorAction SilentlyContinue | Format-Table Name, Length, LastWriteTime
+          if (Test-Path "$release/bundle") {
+            Write-Host "=== Bundle dir ==="
+            Get-ChildItem -Path "$release/bundle" -Recurse -Include "*.exe","*.msi","*.nsis" -ErrorAction SilentlyContinue | Format-Table FullName, Length
+          }
+
+      - name: Upload Windows EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: taby-custom-agent-windows-exe
+          path: |
+            src-tauri/target/release/taby-custom-agent.exe
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.msi
+          if-no-files-found: warn
+          retention-days: 14
