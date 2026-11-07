@@ -26,7 +26,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -37,7 +36,7 @@ jobs:
           workspaces: src-tauri -> target
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build Tauri app (Windows)
         # Produces src-tauri/target/release/taby-custom-agent.exe
