@@ -44,16 +44,3 @@
 1. Does the empty shell window look acceptable as a starting point? (settings form clarity, spacing, accent treatment)
 2. Any visual tweaks before we lock Stage 0?
 3. Reply **GO** to start Stage 1 (top-center hover HUD), or list **CHANGES**.
-
----
-
-## Post-Stage-0 patch (CI only — not Stage 1)
-
-Added GitHub Actions workflow so **every push** builds a Windows `.exe`:
-
-- `.github/workflows/build-windows.yml`
-- Triggers: push (all branches), pull_request, workflow_dispatch
-- Artifact name: `taby-custom-agent-windows-exe`
-- Docs updated: `BUILD_WINDOWS.md`, `README.md`
-
-No Stage 1 UI work. Stage 0 remains awaiting visual GO / CHANGES.
