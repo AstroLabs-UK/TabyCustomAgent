@@ -66,3 +66,9 @@ No Stage 1 UI work. Stage 0 remains awaiting visual GO / CHANGES.
 - Docs updated (BUILD_WINDOWS.md, README.md)
 
 Still Stage 0 — no Stage 1 UI.
+
+
+## Patch — package-lock.json for CI
+
+- Added root `package-lock.json` so `actions/setup-node` `cache: npm` and `npm ci` succeed on Windows runners.
+- Fixes failed **Setup Node.js** step on GitHub Actions.
