@@ -46,6 +46,16 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Verify Tauri CLI is installed
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "node_modules/@tauri-apps/cli/tauri.js")) {
+            Write-Error "Missing node_modules/@tauri-apps/cli/tauri.js after npm ci"
+            Get-ChildItem node_modules/@tauri-apps -ErrorAction SilentlyContinue | Format-Table
+            exit 1
+          }
+          node ./node_modules/@tauri-apps/cli/tauri.js --version
+
       - name: Build Tauri app (Windows NSIS + MSI)
         run: npm run tauri:build
         env:

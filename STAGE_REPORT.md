@@ -77,3 +77,9 @@ Still Stage 0 — no Stage 1 UI.
 
 - Workflow now runs `npm run tauri:build` (not `npm run tauri build`).
 - `tauri:build` / `tauri:dev` scripts use `npx --no-install tauri …` so the local `@tauri-apps/cli` is found on Windows runners.
+
+## Patch — invoke Tauri CLI via node path
+
+- `npx --no-install tauri` fails on Windows because the package is `@tauri-apps/cli`, not `tauri`.
+- Scripts now call `node ./node_modules/@tauri-apps/cli/tauri.js …` (works on Windows + Linux).
+- Workflow verifies `tauri.js` exists after `npm ci` before building.
