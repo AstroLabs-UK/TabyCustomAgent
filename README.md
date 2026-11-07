@@ -14,10 +14,12 @@ A **local-first desktop companion** inspired by Hey Taby. Chat with **your** AI 
 
 ### Windows
 
-1. Download a release `.exe` or build from source (see [BUILD_WINDOWS.md](BUILD_WINDOWS.md)).
-2. Run the app.
+1. Prefer the **NSIS installer** from [GitHub Releases](https://github.com/AstroLabs-UK/TabyCustomAgent/releases) (`*-setup.exe`). It installs the app **and** pulls in WebView2 if needed. See [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
+2. Run the installer, then launch **Custom Taby Agent**.
 3. Open **Settings**, paste your **API key** and confirm the **API endpoint** (Groq: `https://api.groq.com/openai/v1`).
 4. Optional: pair Physical Taby over BLE — **close the official Taby app first**.
+
+Pushes to `main` publish a continuous GitHub Release with the installer and a short install tutorial in the release notes (workflow: `.github/workflows/build-windows.yml`).
 
 ### Linux
 
