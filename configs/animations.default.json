@@ -1,0 +1,13 @@
+{
+  "profile": "default",
+  "states": {
+    "idle": "idle_01_loop",
+    "listening": "listening_loop",
+    "thinking": "working_loop",
+    "ready": "confirmation",
+    "affirmative": "yeah",
+    "negative": "no",
+    "task_created": "task_created",
+    "focus": "lockin"
+  }
+}

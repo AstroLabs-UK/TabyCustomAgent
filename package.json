@@ -1,0 +1,38 @@
+{
+  "name": "taby-custom-agent",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Custom Taby desktop agent — local-first AI HUD that drives Physical Taby over BLE",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "test": "node scripts/run-stage0-tests.mjs && (vitest run || true)",
+    "test:watch": "vitest",
+    "package-windows": "node scripts/package-windows.mjs",
+    "package-linux": "node scripts/package-linux.mjs",
+    "package-repo-zip": "node scripts/package-repo-zip.mjs",
+    "check": "tsc --noEmit && vitest run",
+    "test:unit": "node scripts/run-stage0-tests.mjs"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "@tauri-apps/api": "^2.0.0",
+    "@tauri-apps/plugin-opener": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "@tauri-apps/cli": "^2.0.0",
+    "vitest": "^3.2.4",
+    "jsdom": "^26.1.0"
+  }
+}

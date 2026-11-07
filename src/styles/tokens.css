@@ -1,0 +1,33 @@
+:root {
+  /* Core — design.md + DESIGN_TOKENS.md */
+  --color-text: #171717;
+  --color-text-muted: #686868;
+  --color-background: #ffffff;
+  --color-surface: #f7f7f5;
+  --color-border: #e9e9e6;
+  --color-accent: #f3b7a5;
+  --color-accent-strong: #e98f78;
+  --color-accent-soft: #fcebe5;
+  --color-dark-surface: #202020;
+  --color-on-accent: #171717;
+
+  --pastel-row-1: #dce6f5;
+  --pastel-row-2: #fce4ec;
+  --pastel-row-3: #ffe9db;
+  --pastel-row-4: #e8f2ec;
+  --pastel-row-5: #ede7f6;
+
+  --font-sans: "Inter", "Manrope", system-ui, "Segoe UI", sans-serif;
+  --radius-card: 20px;
+  --radius-cell: 14px;
+  --radius-pill: 999px;
+  --radius-control: 14px;
+  --shadow-hud: 0 8px 28px rgba(20, 20, 20, 0.06);
+  --shadow-card: 0 8px 28px rgba(20, 20, 20, 0.06);
+
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+}
