@@ -83,3 +83,12 @@ Still Stage 0 — no Stage 1 UI.
 - `npx --no-install tauri` fails on Windows because the package is `@tauri-apps/cli`, not `tauri`.
 - Scripts now call `node ./node_modules/@tauri-apps/cli/tauri.js …` (works on Windows + Linux).
 - Workflow verifies `tauri.js` exists after `npm ci` before building.
+
+## Patch — ensure @tauri-apps/cli installs on GHA
+
+Root cause: GitHub-hosted runners often set `NODE_ENV=production`, so `npm ci` **skips devDependencies**. `@tauri-apps/cli` lived there → missing `tauri.js`.
+
+Fixes:
+- Moved `@tauri-apps/cli` to **dependencies** (needed for CI build).
+- Workflow uses `npm ci --include=dev` with `NODE_ENV=development` for install.
+- Verify step lists `@tauri-apps/*` packages for easier debugging.

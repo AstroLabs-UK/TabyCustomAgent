@@ -44,15 +44,22 @@ jobs:
           workspaces: src-tauri -> target
 
       - name: Install frontend dependencies
-        run: npm ci
+        # NODE_ENV=production on runners skips devDependencies; CLI lives there.
+        run: npm ci --include=dev
+        env:
+          NODE_ENV: development
 
       - name: Verify Tauri CLI is installed
         shell: pwsh
         run: |
+          Write-Host "Listing @tauri-apps packages:"
+          Get-ChildItem node_modules/@tauri-apps -ErrorAction SilentlyContinue | Format-Table Name
           if (-not (Test-Path "node_modules/@tauri-apps/cli/tauri.js")) {
             Write-Error "Missing node_modules/@tauri-apps/cli/tauri.js after npm ci"
-            Get-ChildItem node_modules/@tauri-apps -ErrorAction SilentlyContinue | Format-Table
             exit 1
+          }
+          if (-not (Test-Path "node_modules/@tauri-apps/cli-win32-x64-msvc")) {
+            Write-Warning "Optional native binary @tauri-apps/cli-win32-x64-msvc not present — CLI may still work via fallback"
           }
           node ./node_modules/@tauri-apps/cli/tauri.js --version
 
@@ -61,6 +68,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ""
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          NODE_ENV: production
 
       - name: Locate and list build outputs
         id: locate
