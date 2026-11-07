@@ -3,7 +3,7 @@
  * Windows .exe build path (Stage 0 stub).
  * On a Windows host (or CI with Windows runners):
  *   npm install
- *   npm run tauri build
+ *   npm run tauri:build
  * Output typically under:
  *   src-tauri/target/release/taby-custom-agent.exe
  *   and/or NSIS/MSI under src-tauri/target/release/bundle/
@@ -25,7 +25,7 @@ console.log("Cargo.toml present:", existsSync(cargo));
 console.log("");
 console.log("To produce a Windows .exe on Windows:");
 console.log("  1. npm install");
-console.log("  2. npm run tauri build");
+console.log("  2. npm run tauri:build");
 console.log("  3. Find .exe under src-tauri/target/release/");
 console.log("");
 console.log("See BUILD_WINDOWS.md for full instructions.");

@@ -72,3 +72,8 @@ Still Stage 0 — no Stage 1 UI.
 
 - Added root `package-lock.json` so `actions/setup-node` `cache: npm` and `npm ci` succeed on Windows runners.
 - Fixes failed **Setup Node.js** step on GitHub Actions.
+
+## Patch — Windows CI: resolve Tauri CLI
+
+- Workflow now runs `npm run tauri:build` (not `npm run tauri build`).
+- `tauri:build` / `tauri:dev` scripts use `npx --no-install tauri …` so the local `@tauri-apps/cli` is found on Windows runners.

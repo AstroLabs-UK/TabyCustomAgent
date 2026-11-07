@@ -17,7 +17,7 @@ The preferred ship form is the **NSIS setup `.exe`**. It installs the app and, w
 git clone https://github.com/AstroLabs-UK/TabyCustomAgent.git
 cd TabyCustomAgent
 npm install
-npm run tauri build
+npm run tauri:build
 ```
 
 ## Output
