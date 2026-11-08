@@ -39,6 +39,7 @@ console.log("Stage 6 tests\n");
 
 ok("listening maps to listening_loop", STATES.listening === "listening_loop");
 ok("busy maps to busy_loop", STATES.busy === "busy_loop");
+ok("busy is NOT working_loop", STATES.busy !== "working_loop");
 ok("done maps to confirmation", STATES.done === "confirmation");
 ok("error maps to disappointed", STATES.error === "disappointed");
 ok("gif path for confirmation", GIF.confirmation.includes("confirmation.gif"));

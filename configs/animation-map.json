@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "description": "Conversation state → Physical Taby stock animation IDs (amoled-1.64)",
+  "version": 3,
+  "description": "Chat states → stock amoled-1.64 IDs. busy = busy_loop (AI thinking), NOT working_loop (user focus).",
   "states": {
     "listening": "listening_loop",
     "busy": "busy_loop",
@@ -12,9 +12,10 @@
     "listening_loop",
     "listening_in",
     "busy_loop",
-    "working_loop",
     "confirmation",
     "disappointed",
-    "idle_01_loop"
+    "idle_01_loop",
+    "working_loop",
+    "searching_loop"
   ]
 }

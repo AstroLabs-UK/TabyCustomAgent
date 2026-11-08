@@ -1,21 +1,21 @@
-# Stage 6 report — Face reactions + official Taby GIFs
+# Stage 6 report — Face reactions + official GIFs (map fix)
 
-## Automated results
-- Stage 5: PASS · Stage 6: **10/10** PASS
+## Animation mapping (fixed)
+| State | Animation ID | Notes |
+|-------|--------------|-------|
+| Listening | `listening_loop` | OK |
+| AI thinking / busy | **`busy_loop`** | Thinking energy — **not** `working_loop` |
+| Done | `confirmation` | OK |
+| Error | `disappointed` | OK |
+| Idle | `idle_01_loop` | OK |
 
-## Behaviour
-- **Connect mock device** → opens Mock Taby Face window (only then — **not** on each message)
-- Face window plays **official GIFs** from `firmware-taby` amoled-1.64 pack
-- Chat turn drives stock IDs: `listening_loop` → `busy_loop` → `confirmation`
-- Settings: **Face reactions on chat** toggle (disabled = no play, no throw)
-- Offline device: skip play, status only
+`working_loop` is reserved for when **you** are in a work/focus context, not for AI processing.
 
-## Assets
-`public/taby-faces/*.gif` — upstream TRIIIS LABS artwork; keep identified as Taby.
+## Policy
+- Face window opens **only** on **Connect mock device**
+- Face reactions toggle in Settings
 
-## Human review
-1. Connect mock → does the GIF window open once?
-2. Chat turn — do real listening/busy/confirmation clips play?
-3. Toggle face reactions off — stays idle?
+## Tests
+Stage 6: PASS (including busy ≠ working_loop)
 
-Reply **GO** or **CHANGES**.
+Reply **GO** for Stage 7, or **CHANGES**.
