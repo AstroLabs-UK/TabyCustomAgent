@@ -30,11 +30,7 @@ import {
   type ChatState,
   type ChatAttachment,
 } from "./chat";
-import {
-  mockStt,
-  reduceRecording,
-  type RecordingPhase,
-} from "./voice";
+import { mockStt, reduceRecording, type RecordingPhase } from "./voice";
 import {
   HomeView,
   TasksView,
@@ -47,8 +43,7 @@ import {
 } from "./modules/ModuleViews";
 import { tickReminders } from "./modules/reminders";
 import { invokeTool, SYSTEM_TOOL_PROMPT } from "./tools/registry";
-
-type RouteId = NavCellId | "shell";
+import { applyOverlayMode } from "./overlay/windowChrome";
 
 function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
@@ -56,8 +51,7 @@ function App() {
   const [deviceState, setDeviceState] = useState(
     mockDevice.getConnectionState()
   );
-  const [showHotZoneHint, setShowHotZoneHint] = useState(true);
-  const [route, setRoute] = useState<RouteId>("home");
+  const [activeModule, setActiveModule] = useState<NavCellId | null>(null);
   const [chat, setChat] = useState<ChatState>({
     conversations: [],
     activeId: null,
@@ -73,15 +67,18 @@ function App() {
   useEffect(() => {
     setSettings(loadSettings());
     setChat(loadChatState());
+    void applyOverlayMode("collapsed");
   }, []);
 
-  // Reminder ticker
   useEffect(() => {
     const id = window.setInterval(() => {
       const fired = tickReminders(Date.now());
       if (fired.length) {
         setStatusLine(`Reminder: ${fired[0].title}`);
-        if (fired[0].faceNudge && mockDevice.getConnectionState() === "connected") {
+        if (
+          fired[0].faceNudge &&
+          mockDevice.getConnectionState() === "connected"
+        ) {
           void mockDevice.play("drink_water").catch(() => {
             void mockDevice.play("confirmation").catch(() => undefined);
           });
@@ -91,7 +88,6 @@ function App() {
     return () => clearInterval(id);
   }, []);
 
-  // Voice recording timer
   useEffect(() => {
     if (voicePhase !== "recording") return;
     setRecSeconds(0);
@@ -115,16 +111,6 @@ function App() {
     setSaved(false);
   }
 
-  function updateHudDwell(ms: number) {
-    setSettings((s) => ({ ...s, hud: { ...s.hud, dwellMs: ms } }));
-    setSaved(false);
-  }
-
-  function updateAlwaysOnTop(v: boolean) {
-    setSettings((s) => ({ ...s, hud: { ...s.hud, alwaysOnTop: v } }));
-    setSaved(false);
-  }
-
   function handleSave() {
     saveSettings(settings);
     setSaved(true);
@@ -134,11 +120,11 @@ function App() {
     await mockDevice.connect();
     setDeviceState(mockDevice.getConnectionState());
     const opened = await openFaceWindow();
-    if (opened === "failed") {
-      setStatusLine("Could not open face window — allow popups or use Tauri");
-    } else {
-      setStatusLine("Mock face window open");
-    }
+    setStatusLine(
+      opened === "failed"
+        ? "Could not open face window"
+        : "Mock face window open"
+    );
   }
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
@@ -154,19 +140,12 @@ function App() {
     async (text: string, attachments: ChatAttachment[] = []) => {
       const trimmed = text.trim();
       const atts = attachments.filter((a) => !a.error);
-      const failed = attachments.filter((a) => a.error);
       if ((!trimmed && atts.length === 0) || streaming) return;
-      if (failed.length && !atts.length && !trimmed) {
-        setStatusLine(failed[0].error ?? "Attachment error");
-        return;
-      }
 
-      setRoute("chat");
+      setActiveModule("chat");
       let conv = activeConv ?? createConversation();
       let conversations = chat.conversations;
-      if (!activeConv) {
-        conversations = [conv, ...conversations];
-      }
+      if (!activeConv) conversations = [conv, ...conversations];
 
       const context = attachmentsToPromptContext(atts);
       const userContent =
@@ -304,7 +283,6 @@ function App() {
     if (voicePhase === "recording") {
       setVoicePhase((p) => reduceRecording(p, { type: "stop" }));
       try {
-        // Mock blob — real MediaRecorder wires in later
         const blob = new Blob(["mock-audio"], { type: "audio/webm" });
         const result = await mockStt.transcribe(blob);
         setVoicePhase((p) => reduceRecording(p, { type: "transcript_ok" }));
@@ -325,59 +303,14 @@ function App() {
   const connectionOk = deviceOk || aiOk;
   const connectionLabel = `${deviceOk ? "Device connected" : "Device offline"} · ${aiStatusLabel(settings.ai)}`;
 
-  return (
-    <div className="app-shell">
-      <HudOverlay
-        dwellMs={settings.hud.dwellMs}
-        connectionLabel={connectionLabel}
-        connectionOk={connectionOk}
-        showHotZoneHint={showHotZoneHint}
-        pendingAttachments={pendingAttachments}
-        onFilesSelected={(files) => {
-          void addFiles(files);
-        }}
-        onRemoveAttachment={(id) =>
-          setPendingAttachments((prev) => prev.filter((a) => a.id !== id))
-        }
-        onPromptSubmit={(text, attachments) => {
-          void sendUserMessage(text, attachments);
-        }}
-        onVoiceClick={() => {
-          void handleVoiceClick();
-        }}
-        onNavigate={(id) => {
-          setRoute(id);
-          if (id === "chat" && !chat.activeId) {
-            const conv = createConversation();
-            persistChat({
-              conversations: [conv, ...chat.conversations],
-              activeId: conv.id,
-            });
-          }
-        }}
-      />
-
-      <header className="app-header">
-        <div className="brand">
-          <div className="brand-mark" aria-hidden>
-            T
-          </div>
-          <span>Custom Taby Agent</span>
-        </div>
-        <div className="status-pill">
-          {route} · Stage 15
-          {statusLine ? ` · ${statusLine}` : ""}
-          {voicePhase === "recording" ? ` · rec ${recSeconds}s` : ""}
-        </div>
-      </header>
-
-      <main className="app-main">
-        {route === "home" && (
-          <HomeView deviceLabel={connectionLabel} />
-        )}
-        {route === "chat" && (
-          <section className="card">
-            <h2>Chat</h2>
+  function renderModule() {
+    if (!activeModule) return null;
+    switch (activeModule) {
+      case "home":
+        return <HomeView deviceLabel={connectionLabel} />;
+      case "chat":
+        return (
+          <>
             <ChatView
               conversation={activeConv}
               streaming={streaming}
@@ -400,221 +333,211 @@ function App() {
                 onClick={() => void handleVoiceClick()}
               >
                 {voicePhase === "recording"
-                  ? "Stop & send transcript"
-                  : voicePhase === "processing"
-                    ? "Processing…"
-                    : "Voice (mock STT)"}
+                  ? `Stop (${recSeconds}s)`
+                  : "Voice (mock)"}
               </button>
-              <span className="hint">
-                Stage 8 — mock STT; real mic path later
-              </span>
+              {statusLine && <span className="hint">{statusLine}</span>}
             </div>
-          </section>
-        )}
-        {route === "tasks" && <TasksView />}
-        {route === "reminders" && <RemindersView />}
-        {route === "notes" && (
+          </>
+        );
+      case "tasks":
+        return <TasksView />;
+      case "reminders":
+        return <RemindersView />;
+      case "notes":
+        return (
           <NotesView
             onAddToChat={(text) => {
               void sendUserMessage(text, []);
             }}
           />
-        )}
-        {route === "focus" && (
+        );
+      case "focus":
+        return (
           <FocusView
             onFaceLockIn={() => {
               if (mockDevice.getConnectionState() === "connected") {
-                void mockDevice.play("lockin").catch(() =>
-                  mockDevice.play("working_loop").catch(() => undefined)
-                );
+                void mockDevice
+                  .play("lockin")
+                  .catch(() =>
+                    mockDevice.play("working_loop").catch(() => undefined)
+                  );
               }
             }}
           />
-        )}
-        {route === "habits" && <HabitsView />}
-        {route === "today" && <TodayView />}
-        {route === "this_week" && <ThisWeekView />}
-        {route === "feedback" && (
-          <section className="card">
+        );
+      case "habits":
+        return <HabitsView />;
+      case "today":
+        return <TodayView />;
+      case "this_week":
+        return <ThisWeekView />;
+      case "feedback":
+        return (
+          <div>
             <h2>Feedback</h2>
-            <p className="hint">
-              Placeholder — tell us what to improve. Wire to GitHub issues later.
-            </p>
-          </section>
-        )}
-        {route === "settings" && (
-          <>
-            <section className="card">
-              <h2>HUD settings</h2>
-              <div className="form-grid">
-                <label className="field">
-                  <span>Dwell (ms)</span>
-                  <input
-                    type="number"
-                    min={100}
-                    max={3000}
-                    step={50}
-                    value={settings.hud.dwellMs}
-                    onChange={(e) =>
-                      updateHudDwell(Number(e.target.value) || 500)
-                    }
-                  />
-                </label>
-                <label className="field checkbox-field">
-                  <span>Always on top (flag)</span>
-                  <input
-                    type="checkbox"
-                    checked={settings.hud.alwaysOnTop}
-                    onChange={(e) => updateAlwaysOnTop(e.target.checked)}
-                  />
-                </label>
-                <label className="field checkbox-field">
-                  <span>Show hot-zone hint</span>
-                  <input
-                    type="checkbox"
-                    checked={showHotZoneHint}
-                    onChange={(e) => setShowHotZoneHint(e.target.checked)}
-                  />
-                </label>
-                <label className="field checkbox-field">
-                  <span>Face reactions on chat</span>
-                  <input
-                    type="checkbox"
-                    checked={settings.hud.faceReactionsEnabled !== false}
-                    onChange={(e) => {
-                      setSettings((s) => ({
-                        ...s,
-                        hud: {
-                          ...s.hud,
-                          faceReactionsEnabled: e.target.checked,
-                        },
-                      }));
-                      setSaved(false);
-                    }}
-                  />
-                </label>
-              </div>
-            </section>
-            <section className="card">
-              <h2>AI settings</h2>
-              <p className="hint" style={{ marginBottom: 16 }}>
-                Keys stay on this machine only (secure store). Never commit
-                them.
-              </p>
-              <div className="form-grid">
-                <label className="field">
-                  <span>Provider</span>
-                  <select
-                    value={settings.ai.provider}
-                    onChange={(e) =>
-                      updateAi(
-                        "provider",
-                        e.target.value as AppSettings["ai"]["provider"]
-                      )
-                    }
-                  >
-                    <option value="mock">Mock (offline)</option>
-                    <option value="groq">Groq</option>
-                    <option value="openai-compatible">OpenAI-compatible</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>API endpoint (base URL)</span>
-                  <input
-                    type="url"
-                    value={settings.ai.baseUrl}
-                    onChange={(e) => updateAi("baseUrl", e.target.value)}
-                    placeholder="https://api.groq.com/openai/v1"
-                  />
-                </label>
-                <label className="field">
-                  <span>API key</span>
-                  <input
-                    type="password"
-                    autoComplete="off"
-                    value={settings.ai.apiKey}
-                    onChange={(e) => updateAi("apiKey", e.target.value)}
-                    placeholder="Stored locally only"
-                  />
-                </label>
-                <label className="field">
-                  <span>Model</span>
-                  <input
-                    type="text"
-                    value={settings.ai.model}
-                    onChange={(e) => updateAi("model", e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="row-actions">
-                <button
-                  type="button"
-                  className="btn primary"
-                  onClick={handleSave}
+            <p className="hint">Placeholder for feedback / issues.</p>
+          </div>
+        );
+      case "settings":
+        return (
+          <div className="overlay-settings">
+            <h2>Settings</h2>
+            <div className="form-grid">
+              <label className="field">
+                <span>Dwell (ms)</span>
+                <input
+                  type="number"
+                  min={100}
+                  max={3000}
+                  step={50}
+                  value={settings.hud.dwellMs}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      hud: {
+                        ...s.hud,
+                        dwellMs: Number(e.target.value) || 500,
+                      },
+                    }))
+                  }
+                />
+              </label>
+              <label className="field checkbox-field">
+                <span>Face reactions</span>
+                <input
+                  type="checkbox"
+                  checked={settings.hud.faceReactionsEnabled !== false}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      hud: {
+                        ...s.hud,
+                        faceReactionsEnabled: e.target.checked,
+                      },
+                    }))
+                  }
+                />
+              </label>
+              <label className="field">
+                <span>Provider</span>
+                <select
+                  value={settings.ai.provider}
+                  onChange={(e) =>
+                    updateAi(
+                      "provider",
+                      e.target.value as AppSettings["ai"]["provider"]
+                    )
+                  }
                 >
-                  Save settings
-                </button>
-                {saved && <span className="hint">Saved locally</span>}
-              </div>
-            </section>
-            <section className="card">
-              <h2>Device</h2>
-              <div className="form-grid">
-                <label className="field">
-                  <span>Transport</span>
-                  <select
-                    value={settings.device.transport}
-                    onChange={(e) => {
-                      const transport = e.target
-                        .value as AppSettings["device"]["transport"];
-                      setSettings((s) => ({
-                        ...s,
-                        device: { ...s.device, transport },
-                      }));
-                      setSaved(false);
-                    }}
-                  >
-                    <option value="mock">Mock (simulator)</option>
-                    <option value="ble">BLE (hardware)</option>
-                    <option value="usb">USB (stub)</option>
-                    <option value="wifi">Wi-Fi (later)</option>
-                  </select>
-                </label>
-              </div>
-              <div className="row-actions">
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={handleConnectMock}
+                  <option value="mock">Mock</option>
+                  <option value="groq">Groq</option>
+                  <option value="openai-compatible">OpenAI-compatible</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>API endpoint</span>
+                <input
+                  type="url"
+                  value={settings.ai.baseUrl}
+                  onChange={(e) => updateAi("baseUrl", e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>API key</span>
+                <input
+                  type="password"
+                  autoComplete="off"
+                  value={settings.ai.apiKey}
+                  onChange={(e) => updateAi("apiKey", e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>Model</span>
+                <input
+                  type="text"
+                  value={settings.ai.model}
+                  onChange={(e) => updateAi("model", e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>Device transport</span>
+                <select
+                  value={settings.device.transport}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      device: {
+                        ...s.device,
+                        transport: e.target
+                          .value as AppSettings["device"]["transport"],
+                      },
+                    }))
+                  }
                 >
-                  Connect mock device
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => {
-                    const r = invokeTool("create_task", {
-                      title: "Smoke test task",
-                    });
-                    setStatusLine(r.message);
-                  }}
-                >
-                  Test tool: create_task
-                </button>
-              </div>
-              <p className="hint" style={{ marginTop: 12 }}>
-                BLE/USB real I/O is PENDING_HARDWARE. Mock records
-                play/text/choice for CI.
-              </p>
-            </section>
-          </>
-        )}
+                  <option value="mock">Mock</option>
+                  <option value="ble">BLE</option>
+                  <option value="usb">USB</option>
+                  <option value="wifi">Wi-Fi</option>
+                </select>
+              </label>
+            </div>
+            <div className="row-actions">
+              <button type="button" className="btn primary" onClick={handleSave}>
+                Save
+              </button>
+              <button type="button" className="btn" onClick={handleConnectMock}>
+                Connect mock device
+              </button>
+              {saved && <span className="hint">Saved</span>}
+            </div>
+            {statusLine && <p className="hint">{statusLine}</p>}
+          </div>
+        );
+      default:
+        return null;
+    }
+  }
 
-        <p className="footer-note">
-          Stages 8–15 — voice mock, tasks, reminders, notes, today/week,
-          focus, habits, home dashboard.
-        </p>
-      </main>
+  const moduleInner = renderModule();
+  const modulePanel = moduleInner ? (
+    <div className="hud-module-card">{moduleInner}</div>
+  ) : null;
+
+  return (
+    <div className="overlay-root">
+      <HudOverlay
+        dwellMs={settings.hud.dwellMs}
+        connectionLabel={connectionLabel}
+        connectionOk={connectionOk}
+        showHotZoneHint={false}
+        pendingAttachments={pendingAttachments}
+        onFilesSelected={(files) => {
+          void addFiles(files);
+        }}
+        onRemoveAttachment={(id) =>
+          setPendingAttachments((prev) => prev.filter((a) => a.id !== id))
+        }
+        onPromptSubmit={(text, attachments) => {
+          void sendUserMessage(text, attachments);
+        }}
+        onVoiceClick={() => {
+          void handleVoiceClick();
+        }}
+        onNavigate={(id) => {
+          setActiveModule(id);
+          if (id === "chat" && !chat.activeId) {
+            const conv = createConversation();
+            persistChat({
+              conversations: [conv, ...chat.conversations],
+              activeId: conv.id,
+            });
+          }
+        }}
+        modulePanel={modulePanel}
+        activeModuleId={activeModule}
+        onCloseModule={() => setActiveModule(null)}
+      />
     </div>
   );
 }

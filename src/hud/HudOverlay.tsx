@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { DwellTimer } from "./dwellTimer";
 import { reduceHudPhase, type HudPhase } from "./stateMachine";
 import { CompactPrompt } from "./CompactPrompt";
 import { NavGrid } from "./NavGrid";
 import { placeholderTitle, type NavCellId } from "./navModel";
 import type { ChatAttachment } from "../chat/attachments";
+import { applyOverlayMode } from "../overlay/windowChrome";
 
 export type HudOverlayProps = {
   dwellMs: number;
@@ -17,12 +18,12 @@ export type HudOverlayProps = {
   onFilesSelected?: (files: FileList | File[]) => void;
   onRemoveAttachment?: (id: string) => void;
   onVoiceClick?: () => void;
+  /** Active module content rendered under the prompt */
+  modulePanel?: ReactNode;
+  activeModuleId?: NavCellId | null;
+  onCloseModule?: () => void;
 };
 
-/**
- * Stage 1–2 HUD: top-center hot zone + dwell → compact prompt + expandable 2×5 nav.
- * Stage 7: file chips + drag-drop on prompt.
- */
 export function HudOverlay({
   dwellMs,
   connectionLabel,
@@ -34,13 +35,12 @@ export function HudOverlay({
   onFilesSelected,
   onRemoveAttachment,
   onVoiceClick,
+  modulePanel,
+  activeModuleId,
+  onCloseModule,
 }: HudOverlayProps) {
   const [phase, setPhase] = useState<HudPhase>("hidden");
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
-  const [activeRoute, setActiveRoute] = useState<{
-    id: NavCellId;
-    title: string;
-  } | null>(null);
   const timerRef = useRef<DwellTimer | null>(null);
 
   const openCompact = useCallback(() => {
@@ -59,10 +59,31 @@ export function HudOverlay({
     };
   }, [dwellMs, openCompact]);
 
-  const dismiss = useCallback(() => {
-    setPhase((p) => reduceHudPhase(p, { type: "dismiss" }));
+  // Collapse / expand OS window to match HUD visibility
+  useEffect(() => {
+    const open =
+      phase !== "hidden" || Boolean(modulePanel) || Boolean(activeModuleId);
+    void applyOverlayMode(open ? "expanded" : "collapsed");
+  }, [phase, modulePanel, activeModuleId]);
+
+  const dismissAll = useCallback(() => {
+    setPhase("hidden");
     timerRef.current?.pointerLeave();
-  }, []);
+    onCloseModule?.();
+  }, [onCloseModule]);
+
+  const dismiss = useCallback(() => {
+    // Close module first, then menu, then HUD
+    if (activeModuleId) {
+      onCloseModule?.();
+      return;
+    }
+    if (phase === "expanded") {
+      setPhase((p) => reduceHudPhase(p, { type: "escape" }));
+      return;
+    }
+    dismissAll();
+  }, [activeModuleId, phase, onCloseModule, dismissAll]);
 
   const toggleNav = useCallback(() => {
     setPhase((p) => reduceHudPhase(p, { type: "toggle_nav" }));
@@ -70,17 +91,14 @@ export function HudOverlay({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && phase !== "hidden") {
-        if (phase === "compact") {
-          e.preventDefault();
-          setPhase((p) => reduceHudPhase(p, { type: "escape" }));
-          timerRef.current?.pointerLeave();
-        }
+      if (e.key === "Escape" && (phase !== "hidden" || activeModuleId)) {
+        e.preventDefault();
+        dismiss();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phase]);
+  }, [phase, activeModuleId, dismiss]);
 
   function handleHotEnter() {
     if (phase === "hidden") {
@@ -93,10 +111,8 @@ export function HudOverlay({
   }
 
   function handleBackdropClick() {
-    if (phase !== "hidden") {
-      setPhase((p) => reduceHudPhase(p, { type: "click_outside" }));
-      timerRef.current?.pointerLeave();
-    }
+    // Clicking off menu / panel closes (user request)
+    dismiss();
   }
 
   function handleSubmit(text: string, attachments: ChatAttachment[]) {
@@ -106,7 +122,7 @@ export function HudOverlay({
 
   function handleActivate(id: NavCellId) {
     const title = placeholderTitle(id);
-    setActiveRoute({ id, title });
+    // Collapse nav, keep prompt, open module panel under prompt
     setPhase((p) => reduceHudPhase(p, { type: "activate_route" }));
     onNavigate?.(id, title);
   }
@@ -115,7 +131,7 @@ export function HudOverlay({
     setPhase((p) => reduceHudPhase(p, { type: "escape" }));
   }
 
-  const visible = phase !== "hidden";
+  const visible = phase !== "hidden" || Boolean(activeModuleId);
   const expanded = phase === "expanded";
 
   return (
@@ -130,13 +146,17 @@ export function HudOverlay({
 
       {visible && (
         <div
-          className="hud-backdrop"
+          className="hud-backdrop hud-backdrop--overlay"
           data-testid="hud-backdrop"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) handleBackdropClick();
           }}
         >
-          <div className="hud-stage" data-testid="hud-stage">
+          <div
+            className="hud-stage hud-stage--overlay"
+            data-testid="hud-stage"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <CompactPrompt
               connectionLabel={connectionLabel}
               connectionOk={connectionOk}
@@ -155,14 +175,14 @@ export function HudOverlay({
                 onCollapse={handleCollapseNav}
               />
             )}
-            {lastPrompt && (
+            {modulePanel && (
+              <div className="hud-module-panel" data-testid="hud-module-panel">
+                {modulePanel}
+              </div>
+            )}
+            {lastPrompt && !modulePanel && (
               <p className="hud-last-prompt" data-testid="hud-last-prompt">
                 Last: {lastPrompt}
-              </p>
-            )}
-            {activeRoute && (
-              <p className="hud-route-chip" data-testid="hud-active-route">
-                Route: {activeRoute.title}
               </p>
             )}
           </div>

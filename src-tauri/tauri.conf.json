@@ -12,10 +12,20 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Custom Taby Agent",
-        "width": 800,
-        "height": 600,
-        "label": "main"
+        "width": 1280,
+        "height": 16,
+        "x": 0,
+        "y": 0,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "resizable": false,
+        "fullscreen": false,
+        "shadow": false,
+        "skipTaskbar": false,
+        "focus": false
       }
     ],
     "security": {
@@ -24,10 +34,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "nsis",
-      "msi"
-    ],
+    "targets": ["nsis", "msi"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

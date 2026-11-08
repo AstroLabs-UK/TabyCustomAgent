@@ -1,15 +1,17 @@
-# UI + tools pass (post Stage 15)
+# Overlay mode
 
-## Changes
-1. **HUD looks like official Taby** — dark glass panel, circular X / mic / attach / send, icon+label nav
-2. **Nav order** matches screenshot: Chat|Home, Tasks|Notes, Reminders|Habits, Today|This week, Focus|Feedback, Settings
-3. **Idle loops cycle** — after each idle GIF duration + ~900ms still pause → next idle variant
-4. **AI tools** — mock keyword intents + live `tools` API; can create/complete/delete tasks, reminders, notes, habits, start focus
+## Behaviour
+- **No full app page** — only top-screen overlay
+- Hover **top of screen** (dwell) → glass prompt
+- **Menu** expands under prompt (official dark style)
+- Click a nav item → **module glass panel** under the prompt (settings, tasks, …)
+- **Click off** the menu/panel (backdrop) closes it; Escape too
+- Window **collapses** to a thin top strip when HUD is hidden so other apps stay usable
+- Desktop / apps visible around and through the glass
 
-## Tests
-Stage 2 (nav): PASS · Stages 8–15: PASS
+## Tauri
+- `transparent`, `decorations: false`, `alwaysOnTop`
+- Resize collapsed ↔ expanded with HUD phase
 
-## Try
-- Hover top → expand menu (should match dark official look)
-- “add task buy milk” with mock AI
-- Connect mock face → watch idle variants swap after each loop
+## Test in packaged / `tauri dev`
+Browser-only won’t fully resize the OS window.
