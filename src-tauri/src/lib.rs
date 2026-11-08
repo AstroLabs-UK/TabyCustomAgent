@@ -1,8 +1,21 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
+use std::time::{Duration, Instant};
+
+use mouse_position::mouse_position::Mouse;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, WindowEvent,
 };
+
+/// Max cursor Y (physical px from desktop top) to count as “top edge”.
+const TOP_EDGE_PX: i32 = 8;
+/// How long the cursor must stay in the edge before opening (ms).
+const EDGE_DWELL_MS: u64 = 450;
+/// Poll interval for global cursor (ms).
+const POLL_MS: u64 = 40;
 
 fn show_overlay(app: &tauri::AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
@@ -20,6 +33,59 @@ fn hide_overlay(app: &tauri::AppHandle) {
     let _ = app.emit("overlay://hide", ());
 }
 
+fn is_main_visible(app: &tauri::AppHandle) -> bool {
+    app.get_webview_window("main")
+        .and_then(|w| w.is_visible().ok())
+        .unwrap_or(false)
+}
+
+/// Background thread: global cursor poll (works while window is hidden / in tray).
+fn start_edge_watcher(app: tauri::AppHandle, enabled: Arc<AtomicBool>) {
+    thread::spawn(move || {
+        let mut edge_since: Option<Instant> = None;
+        let mut fired_this_dwell = false;
+
+        loop {
+            thread::sleep(Duration::from_millis(POLL_MS));
+            if !enabled.load(Ordering::Relaxed) {
+                edge_since = None;
+                fired_this_dwell = false;
+                continue;
+            }
+
+            // Only arm when overlay is hidden (tray mode)
+            if is_main_visible(&app) {
+                edge_since = None;
+                fired_this_dwell = false;
+                continue;
+            }
+
+            let near_top = match Mouse::get_mouse_position() {
+                Mouse::Position { y, .. } => y >= 0 && y <= TOP_EDGE_PX,
+                Mouse::Error => false,
+            };
+
+            if near_top {
+                if edge_since.is_none() {
+                    edge_since = Some(Instant::now());
+                    fired_this_dwell = false;
+                }
+                if !fired_this_dwell {
+                    if let Some(t0) = edge_since {
+                        if t0.elapsed() >= Duration::from_millis(EDGE_DWELL_MS) {
+                            show_overlay(&app);
+                            fired_this_dwell = true;
+                        }
+                    }
+                }
+            } else {
+                edge_since = None;
+                fired_this_dwell = false;
+            }
+        }
+    });
+}
+
 #[tauri::command]
 fn show_main_window(app: tauri::AppHandle) {
     show_overlay(&app);
@@ -30,12 +96,25 @@ fn hide_main_window(app: tauri::AppHandle) {
     hide_overlay(&app);
 }
 
+#[tauri::command]
+fn set_edge_watch_enabled(enabled: bool, state: tauri::State<'_, Arc<AtomicBool>>) {
+    state.store(enabled, Ordering::Relaxed);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let edge_enabled = Arc::new(AtomicBool::new(true));
+    let edge_for_setup = edge_enabled.clone();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![show_main_window, hide_main_window])
-        .setup(|app| {
+        .manage(edge_enabled)
+        .invoke_handler(tauri::generate_handler![
+            show_main_window,
+            hide_main_window,
+            set_edge_watch_enabled
+        ])
+        .setup(move |app| {
             let show_i = MenuItem::with_id(app, "show", "Show overlay", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
@@ -70,6 +149,9 @@ pub fn run() {
                     }
                 });
             }
+
+            // Global cursor edge watch — independent of window hit-testing
+            start_edge_watcher(app.handle().clone(), edge_for_setup);
 
             Ok(())
         })

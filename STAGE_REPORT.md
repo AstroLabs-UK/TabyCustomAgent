@@ -1,13 +1,16 @@
-# System tray
+# Global top-edge open (not window tracking)
 
-## Behaviour
-- **Click off** the HUD (or Escape until closed) → window **hides to system tray**
-- **Close button / Alt+F4** → tray (does not quit)
-- **Left-click tray icon** or **Show overlay** menu → window shows + prompt opens
-- **Quit** only from tray menu
+## How it works
+While the overlay is **hidden in the tray**, a **Rust background thread** polls the **global** mouse position (`mouse_position` crate / OS cursor API) every ~40ms.
 
-## Note
-Top-of-screen hover only works while the overlay window is visible. After hide-to-tray, use the tray icon to bring it back.
+If the cursor stays in the **top ~8 physical pixels** of the desktop for **~450ms**, the overlay is shown and `overlay://show` is emitted (same path as tray “Show”).
 
-## Build
-Requires `tauri` feature `tray-icon` (already set in Cargo.toml).
+This does **not** rely on a thin visible window or WebView hover — it works over any other app.
+
+## Still available
+- Tray icon left-click / “Show overlay”
+- Click-off / Escape → hide to tray
+- Close → tray (not quit)
+
+## Tune
+`TOP_EDGE_PX` and `EDGE_DWELL_MS` in `src-tauri/src/lib.rs`.
