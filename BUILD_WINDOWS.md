@@ -36,7 +36,7 @@ npm run tauri dev
 
 ## GitHub Actions → Releases
 
-Workflow: `.github/workflows/build-windows.yml`
+Workflow: `.github/workflows/build-windows.yml` (uses official `tauri-apps/tauri-action` on `windows-latest`)
 
 | Event | Result |
 |-------|--------|

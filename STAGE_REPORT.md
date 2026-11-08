@@ -92,3 +92,16 @@ Fixes:
 - Moved `@tauri-apps/cli` to **dependencies** (needed for CI build).
 - Workflow uses `npm ci --include=dev` with `NODE_ENV=development` for install.
 - Verify step lists `@tauri-apps/*` packages for easier debugging.
+
+## Patch — official tauri-action + resilient CLI runner
+
+CI still could not find `node_modules/@tauri-apps/cli/tauri.js` even though the
+`cli` folder was present (Windows install layout / bin issue).
+
+Changes:
+- Workflow uses **`tauri-apps/tauri-action@v0`** (installs/invokes CLI correctly).
+- Local scripts use **`scripts/run-tauri.mjs`** which resolves the CLI via
+  `require.resolve`, relative paths, `.bin` shim, then `npm exec` fallback.
+- Fail-fast **`npm run build`** (Vite only) before Tauri bundling.
+- Release gating via a small bash step (main/master/tags only).
+- Anticipated follow-on issues addressed: NODE_ENV/devDeps, CLI path, release body.
