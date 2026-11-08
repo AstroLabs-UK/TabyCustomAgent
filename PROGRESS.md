@@ -7,8 +7,8 @@ Format: `Stage N — GO — YYYY-MM-DD — optional note`
 | Stage | Status | Date | Note |
 |------:|--------|------|------|
 | 0 | GO | 2026-11-08 | Skeleton + CI Windows build path |
-| 1 | in progress | 2026-11-08 | Top HUD invoke |
-| 2 | not started | | |
+| 1 | GO | 2026-11-08 | Top HUD invoke (dwell + compact prompt) |
+| 2 | in progress | 2026-11-08 | Expanded 2×5 navigation |
 | 3 | not started | | |
 | 4 | not started | | |
 | 5 | not started | | |

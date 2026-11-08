@@ -390,3 +390,81 @@ kbd {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
 }
+
+/* ─── Stage 2: 2×5 nav ───────────────────────────────────────── */
+
+.hud-nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.hud-nav-toggle:hover {
+  border-color: var(--color-accent);
+}
+
+.hud-nav-toggle.is-open {
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+  color: #ffffff;
+}
+
+.hud-nav-panel {
+  width: 100%;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-hud);
+  padding: 12px;
+  animation: hud-slide-in 200ms ease-out;
+}
+
+.hud-nav-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.hud-nav-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-cell);
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+  transition: border-color 140ms ease, filter 140ms ease, transform 140ms ease;
+}
+
+.hud-nav-cell:hover,
+.hud-nav-cell.is-focused {
+  border-color: var(--color-accent-strong);
+  filter: brightness(0.97);
+}
+
+.hud-nav-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.hud-route-chip {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-accent-soft);
+  border-radius: 999px;
+  padding: 4px 12px;
+}

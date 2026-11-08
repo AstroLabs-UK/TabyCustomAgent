@@ -54,7 +54,7 @@ function App() {
     setMockReply("");
     let acc = "";
     for await (const chunk of mockAi.completeStream(
-      [{ role: "user", content: "Hello from Stage 1 HUD" }],
+      [{ role: "user", content: "Hello from Stage 2 nav" }],
       settings.ai
     )) {
       if (chunk.type === "token" && chunk.text) {
@@ -91,6 +91,9 @@ function App() {
             }
           })();
         }}
+        onNavigate={(id, title) => {
+          setMockReply(`Opened placeholder: ${title} (${id})`);
+        }}
       />
 
       <header className="app-header">
@@ -101,18 +104,20 @@ function App() {
           <span>Custom Taby Agent</span>
         </div>
         <div className="status-pill">
-          Device: {deviceState} · Stage 1 HUD
+          Device: {deviceState} · Stage 2 nav
         </div>
       </header>
 
       <main className="app-main">
         <section className="hero">
-          <h1>Top-center HUD</h1>
+          <h1>Top HUD + 2×5 nav</h1>
           <p>
             Hover the top-center edge for{" "}
-            <strong>{settings.hud.dwellMs} ms</strong> to open the compact
-            prompt. Press <kbd>Esc</kbd> or click outside to dismiss. Nav grid
-            arrives in Stage 2.
+            <strong>{settings.hud.dwellMs} ms</strong> to open the prompt.
+            Click the <strong>four-box</strong> control to expand the 2×5 menu
+            (turns into an <strong>X</strong>, filled accent, white icon).
+            Prompt stays visible while expanded. <kbd>Esc</kbd> or outside
+            click dismisses.
           </p>
         </section>
 
@@ -228,7 +233,7 @@ function App() {
         </section>
 
         <p className="footer-note">
-          Stage 1 — top HUD only. Physical Taby / real mouse HUD validation is
+          Stage 2 — HUD + frozen 2×5 nav layout. Physical Taby / real mouse HUD validation is
           on your machine. CI builds the Windows installer on push to main.
         </p>
       </main>

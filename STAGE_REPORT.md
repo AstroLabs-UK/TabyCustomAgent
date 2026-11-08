@@ -1,42 +1,42 @@
-# Stage 1 report — Top HUD invoke
+# Stage 2 report — Expanded 2×5 navigation
 
 ## Automated results
 - suite: **PASS**
-- runner: `npm run test:unit` → stage0 (11/11) + stage1 (10/10)
+- runner: `npm run test:unit`
+  - Stage 0: 11/11
+  - Stage 1: 10/10
+  - Stage 2: 14/14
 - notes:
-  - DwellTimer with fake clock: no fire before threshold; fires at ms; leave cancels; once per hover; configurable dwell
-  - State machine: hidden → compact on dwell; dismiss / Escape / click-outside → hidden
-  - Compact prompt chrome: input, send, upload/voice placeholders, connection dot
-  - Hot zone top-center; backdrop dismiss; Esc dismiss
-  - Settings: dwell ms + always-on-top flag + hot-zone hint toggle
+  - Grid model locked: 5×2, exact labels, row-shared pastels
+  - Row 3 peach `#FFE9DB` (not yellow)
+  - Expand/collapse via four-box → X toggle
+  - Keyboard: arrows, Enter, Escape (expanded→compact→hidden)
+  - Active route placeholder chip updates on cell activate
+  - Prompt remains visible while nav expanded
 
-## Deliverables checklist (Stage 1)
+## CI fix (Release vs tag-only)
+- `tauri-apps/tauri-action` now **builds only** (no tag/release from that action)
+- **`softprops/action-gh-release@v2`** publishes a real GitHub **Release** with assets
+- Continuous tags: `continuous-<branch>-<run_number>` (prerelease)
+- Version tags `v*`: non-prerelease Release
+
+## Deliverables checklist (Stage 2)
 
 | Item | Status |
 |------|--------|
-| Hot zone geometry (top center) | Done |
-| Dwell timer (default 500 ms, configurable) | Done |
-| Compact overlay: prompt, send, upload/voice placeholders, connection dot | Done |
-| Dismiss: Escape / click outside | Done |
-| Optional always-on-top flag (settings) | Done (flag stored; native always-on-top later) |
-| Unit tests green | Done (10 Stage 1 + 11 Stage 0) |
-| Windows `.exe` CI path | Inherited from Stage 0 |
-
-## Screenshots / UI notes (for human review)
-
-Main window still hosts settings + mocks. HUD is a **fixed top-center hot zone** (subtle peach hint when enabled). After dwell, a centered compact bar appears with:
-
-- Green/grey connection dot  
-- “Ask anything…” input  
-- File + voice icon buttons (placeholders)  
-- Accent **Send** pill (`#E98F78`)
-
-Backdrop soft dim; Esc or outside click closes.
+| Four-box → X, filled accent, white icon when open | Done |
+| Grid exactly Chat/Home … Habits/This week | Done |
+| Prompt visible while expanded | Done |
+| Placeholder route on cell activate | Done |
+| Keyboard arrows / Enter / Escape | Done |
+| Row pastels from DESIGN_TOKENS (peach row 3) | Done |
+| Unit tests | Done (14 Stage 2) |
+| Real GitHub Release publish | Done (workflow) |
 
 ## Human review questions only
 
-1. Hold mouse at top center — does **timing** feel close enough to official (default 500 ms)?  
-2. Is the **bar centered** and comfortable under the camera / top edge area?  
-3. Any visual tweaks to density, radius, or hint strip before we lock Stage 1?
+1. Expanded menu: do **columns, spacing, and 2×5 labels** match intent?
+2. Does the **four-box → X** treatment (filled `#E98F78`, white icon) look right?
+3. Any visual tweaks before we **freeze the nav layout**?
 
 Reply **GO** or list **CHANGES**.

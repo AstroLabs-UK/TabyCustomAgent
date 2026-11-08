@@ -1,19 +1,22 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { NavToggle } from "./NavToggle";
 
 export type CompactPromptProps = {
   connectionLabel: string;
   connectionOk: boolean;
+  navExpanded: boolean;
+  onToggleNav: () => void;
   onSubmit: (text: string) => void;
   onDismiss: () => void;
-  /** Placeholder for Stage 2+ file upload */
   onUploadClick?: () => void;
-  /** Placeholder for Stage 2+ voice */
   onVoiceClick?: () => void;
 };
 
 export function CompactPrompt({
   connectionLabel,
   connectionOk,
+  navExpanded,
+  onToggleNav,
   onSubmit,
   onDismiss,
   onUploadClick,
@@ -23,8 +26,10 @@ export function CompactPrompt({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!navExpanded) {
+      inputRef.current?.focus();
+    }
+  }, [navExpanded]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -49,6 +54,7 @@ export function CompactPrompt({
       onKeyDown={handleKeyDown}
     >
       <form className="hud-compact-form" onSubmit={handleSubmit}>
+        <NavToggle expanded={navExpanded} onToggle={onToggleNav} />
         <span
           className={`hud-connection-dot ${connectionOk ? "ok" : "off"}`}
           title={connectionLabel}
