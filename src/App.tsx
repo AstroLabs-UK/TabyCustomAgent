@@ -67,7 +67,7 @@ function App() {
   useEffect(() => {
     setSettings(loadSettings());
     setChat(loadChatState());
-    void applyOverlayMode("collapsed");
+    void applyOverlayMode("expanded"); // first paint; click-off → tray
   }, []);
 
   useEffect(() => {

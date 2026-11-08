@@ -5,7 +5,7 @@ import { CompactPrompt } from "./CompactPrompt";
 import { NavGrid } from "./NavGrid";
 import { placeholderTitle, type NavCellId } from "./navModel";
 import type { ChatAttachment } from "../chat/attachments";
-import { applyOverlayMode } from "../overlay/windowChrome";
+import { applyOverlayMode, onTrayShowRequest } from "../overlay/windowChrome";
 
 export type HudOverlayProps = {
   dwellMs: number;
@@ -39,7 +39,7 @@ export function HudOverlay({
   activeModuleId,
   onCloseModule,
 }: HudOverlayProps) {
-  const [phase, setPhase] = useState<HudPhase>("hidden");
+  const [phase, setPhase] = useState<HudPhase>("compact"); // first run visible; click-off → tray
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const timerRef = useRef<DwellTimer | null>(null);
 
@@ -59,12 +59,23 @@ export function HudOverlay({
     };
   }, [dwellMs, openCompact]);
 
-  // Collapse / expand OS window to match HUD visibility
+  // Expand OS window when HUD open; hide to tray when fully dismissed
   useEffect(() => {
     const open =
       phase !== "hidden" || Boolean(modulePanel) || Boolean(activeModuleId);
-    void applyOverlayMode(open ? "expanded" : "collapsed");
+    void applyOverlayMode(open ? "expanded" : "hidden");
   }, [phase, modulePanel, activeModuleId]);
+
+  // Tray "Show" / left-click → open compact prompt
+  useEffect(() => {
+    let un: (() => void) | undefined;
+    void onTrayShowRequest(() => {
+      setPhase((p) => (p === "hidden" ? "compact" : p));
+    }).then((fn) => {
+      un = fn;
+    });
+    return () => un?.();
+  }, []);
 
   const dismissAll = useCallback(() => {
     setPhase("hidden");

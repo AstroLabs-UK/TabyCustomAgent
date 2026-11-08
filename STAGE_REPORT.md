@@ -1,17 +1,13 @@
-# Overlay mode
+# System tray
 
 ## Behaviour
-- **No full app page** — only top-screen overlay
-- Hover **top of screen** (dwell) → glass prompt
-- **Menu** expands under prompt (official dark style)
-- Click a nav item → **module glass panel** under the prompt (settings, tasks, …)
-- **Click off** the menu/panel (backdrop) closes it; Escape too
-- Window **collapses** to a thin top strip when HUD is hidden so other apps stay usable
-- Desktop / apps visible around and through the glass
+- **Click off** the HUD (or Escape until closed) → window **hides to system tray**
+- **Close button / Alt+F4** → tray (does not quit)
+- **Left-click tray icon** or **Show overlay** menu → window shows + prompt opens
+- **Quit** only from tray menu
 
-## Tauri
-- `transparent`, `decorations: false`, `alwaysOnTop`
-- Resize collapsed ↔ expanded with HUD phase
+## Note
+Top-of-screen hover only works while the overlay window is visible. After hide-to-tray, use the tray icon to bring it back.
 
-## Test in packaged / `tauri dev`
-Browser-only won’t fully resize the OS window.
+## Build
+Requires `tauri` feature `tray-icon` (already set in Cargo.toml).

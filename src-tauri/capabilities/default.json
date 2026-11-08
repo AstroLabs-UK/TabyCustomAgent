@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Overlay main + mock face window",
+  "description": "Overlay main + tray + face window",
   "windows": ["main", "face"],
   "permissions": [
     "core:default",
@@ -21,8 +21,11 @@
     "core:window:allow-outer-size",
     "core:window:allow-inner-size",
     "core:window:allow-scale-factor",
+    "core:window:allow-is-visible",
     "core:window:allow-is-always-on-top",
     "core:webview:allow-create-webview-window",
-    "core:webview:allow-create-webview"
+    "core:webview:allow-create-webview",
+    "core:tray:default",
+    "core:event:default"
   ]
 }
