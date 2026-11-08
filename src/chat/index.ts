@@ -4,3 +4,6 @@ export * from "./streamAssemble";
 export * from "./markdown";
 export { ChatView } from "./ChatView";
 export { newId } from "./id";
+
+export * from "./attachments";
+export { AttachmentChips } from "./AttachmentChips";

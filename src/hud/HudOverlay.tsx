@@ -4,19 +4,23 @@ import { reduceHudPhase, type HudPhase } from "./stateMachine";
 import { CompactPrompt } from "./CompactPrompt";
 import { NavGrid } from "./NavGrid";
 import { placeholderTitle, type NavCellId } from "./navModel";
+import type { ChatAttachment } from "../chat/attachments";
 
 export type HudOverlayProps = {
   dwellMs: number;
   connectionLabel: string;
   connectionOk: boolean;
-  onPromptSubmit?: (text: string) => void;
+  onPromptSubmit?: (text: string, attachments: ChatAttachment[]) => void;
   onNavigate?: (id: NavCellId, title: string) => void;
   showHotZoneHint?: boolean;
+  pendingAttachments?: ChatAttachment[];
+  onFilesSelected?: (files: FileList | File[]) => void;
+  onRemoveAttachment?: (id: string) => void;
 };
 
 /**
  * Stage 1–2 HUD: top-center hot zone + dwell → compact prompt + expandable 2×5 nav.
- * Prompt remains visible while nav is expanded.
+ * Stage 7: file chips + drag-drop on prompt.
  */
 export function HudOverlay({
   dwellMs,
@@ -25,10 +29,16 @@ export function HudOverlay({
   onPromptSubmit,
   onNavigate,
   showHotZoneHint = false,
+  pendingAttachments = [],
+  onFilesSelected,
+  onRemoveAttachment,
 }: HudOverlayProps) {
   const [phase, setPhase] = useState<HudPhase>("hidden");
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
-  const [activeRoute, setActiveRoute] = useState<{ id: NavCellId; title: string } | null>(null);
+  const [activeRoute, setActiveRoute] = useState<{
+    id: NavCellId;
+    title: string;
+  } | null>(null);
   const timerRef = useRef<DwellTimer | null>(null);
 
   const openCompact = useCallback(() => {
@@ -59,7 +69,6 @@ export function HudOverlay({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape" && phase !== "hidden") {
-        // NavGrid handles Esc when expanded; this is a safety net
         if (phase === "compact") {
           e.preventDefault();
           setPhase((p) => reduceHudPhase(p, { type: "escape" }));
@@ -88,9 +97,9 @@ export function HudOverlay({
     }
   }
 
-  function handleSubmit(text: string) {
+  function handleSubmit(text: string, attachments: ChatAttachment[]) {
     setLastPrompt(text);
-    onPromptSubmit?.(text);
+    onPromptSubmit?.(text, attachments);
   }
 
   function handleActivate(id: NavCellId) {
@@ -133,9 +142,15 @@ export function HudOverlay({
               onToggleNav={toggleNav}
               onSubmit={handleSubmit}
               onDismiss={dismiss}
+              pendingAttachments={pendingAttachments}
+              onFilesSelected={onFilesSelected}
+              onRemoveAttachment={onRemoveAttachment}
             />
             {expanded && (
-              <NavGrid onActivate={handleActivate} onCollapse={handleCollapseNav} />
+              <NavGrid
+                onActivate={handleActivate}
+                onCollapse={handleCollapseNav}
+              />
             )}
             {lastPrompt && (
               <p className="hud-last-prompt" data-testid="hud-last-prompt">

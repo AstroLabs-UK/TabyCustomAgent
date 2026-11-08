@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { Conversation } from "./types";
 import { renderBasicMarkdown } from "./markdown";
+import { AttachmentChips } from "./AttachmentChips";
 
 export type ChatViewProps = {
   conversation: Conversation | null;
@@ -53,6 +54,9 @@ export function ChatView({
             className={`chat-bubble chat-bubble--${m.role}`}
             data-role={m.role}
           >
+            {m.attachments && m.attachments.length > 0 && (
+              <AttachmentChips items={m.attachments} />
+            )}
             <div
               className="chat-bubble-body"
               dangerouslySetInnerHTML={{

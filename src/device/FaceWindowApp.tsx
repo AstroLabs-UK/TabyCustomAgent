@@ -22,10 +22,6 @@ const INITIAL: FaceDisplayState = {
   connected: false,
 };
 
-/**
- * Force GIF replay from frame 0 by cache-busting the URL.
- * Same path alone often freezes on the last frame in WebView.
- */
 function gifSrc(id: string, token: number): string | null {
   const base = gifForAnimationId(id);
   if (!base) return null;
@@ -44,12 +40,10 @@ export function FaceWindowApp() {
   useEffect(() => {
     return subscribeFaceState((s) => {
       setFace(s);
-      // Always bump token so the <img> reloads and the GIF restarts
       setToken((n) => n + 1);
     });
   }, []);
 
-  // After one-shot clips, cleanly return to idle
   useEffect(() => {
     if (idleTimer.current) {
       clearTimeout(idleTimer.current);
@@ -59,15 +53,18 @@ export function FaceWindowApp() {
     lastId.current = id;
     if (!face.connected) return;
     if (LOOPING_ANIMATION_IDS.has(id)) return;
-    if (id === "idle_01_loop" || id === "idle") return;
+    if (id === "idle_01_loop" || id === "idle" || id === "idle_02_loop") return;
 
-    const ms = durationMsFor(DEFAULT_ANIMATION_MAP, id) + 80;
+    const clipMs = durationMsFor(DEFAULT_ANIMATION_MAP, id);
+    const extra = DEFAULT_ANIMATION_MAP.postDoneDelayMs ?? 1200;
+    const ms = clipMs + extra;
     idleTimer.current = setTimeout(() => {
-      // Only return if we haven't been interrupted
       if (lastId.current !== id) return;
+      const idlePick =
+        Math.random() < 0.5 ? "idle_01_loop" : "idle_02_loop";
       publishFaceState({
-        animationId: "idle_01_loop",
-        label: FACE_LABELS["idle_01_loop"] ?? "Idle",
+        animationId: idlePick,
+        label: FACE_LABELS[idlePick] ?? "Idle",
         at: Date.now(),
         connected: true,
       });

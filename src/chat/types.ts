@@ -5,6 +5,7 @@ export type ChatMessage = {
   role: ChatRole;
   content: string;
   createdAt: number;
+  attachments?: import("./attachments").ChatAttachment[];
 };
 
 export type Conversation = {

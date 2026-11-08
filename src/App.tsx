@@ -18,8 +18,12 @@ import {
   createConversation,
   appendMessage,
   replaceAssistantTail,
+  fileToAttachment,
+  attachmentsToPromptContext,
+  DEFAULT_MAX_ATTACHMENT_BYTES,
   type Conversation,
   type ChatState,
+  type ChatAttachment,
 } from "./chat";
 
 type RouteId = NavCellId | "shell";
@@ -33,6 +37,7 @@ function App() {
   const [chat, setChat] = useState<ChatState>({ conversations: [], activeId: null });
   const [streaming, setStreaming] = useState(false);
   const [statusLine, setStatusLine] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
 
   useEffect(() => {
     setSettings(loadSettings());
@@ -92,10 +97,25 @@ function App() {
     return conv;
   }, [activeConv, chat.conversations, persistChat]);
 
+  const addFiles = useCallback(async (files: FileList | File[]) => {
+    const list = Array.from(files);
+    const next: ChatAttachment[] = [];
+    for (const f of list) {
+      next.push(await fileToAttachment(f, DEFAULT_MAX_ATTACHMENT_BYTES));
+    }
+    setPendingAttachments((prev) => [...prev, ...next]);
+  }, []);
+
   const sendUserMessage = useCallback(
-    async (text: string) => {
+    async (text: string, attachments: ChatAttachment[] = []) => {
       const trimmed = text.trim();
-      if (!trimmed || streaming) return;
+      const atts = attachments.filter((a) => !a.error);
+      const failed = attachments.filter((a) => a.error);
+      if ((!trimmed && atts.length === 0) || streaming) return;
+      if (failed.length && !atts.length && !trimmed) {
+        setStatusLine(failed[0].error ?? "Attachment error");
+        return;
+      }
 
       setRoute("chat");
       let conv = activeConv ?? createConversation();
@@ -104,7 +124,14 @@ function App() {
         conversations = [conv, ...conversations];
       }
 
-      conv = appendMessage(conv, "user", trimmed);
+      const context = attachmentsToPromptContext(atts);
+      const userContent =
+        context && trimmed && trimmed !== "(attachment)"
+          ? `${trimmed}\n\n${context}`
+          : context || trimmed;
+
+      conv = appendMessage(conv, "user", userContent, atts.length ? atts : undefined);
+      setPendingAttachments([]);
       conversations = conversations.map((c) => (c.id === conv.id ? conv : c));
       if (!conversations.find((c) => c.id === conv.id)) {
         conversations = [conv, ...conversations];
@@ -189,8 +216,15 @@ function App() {
         connectionLabel={connectionLabel}
         connectionOk={connectionOk}
         showHotZoneHint={showHotZoneHint}
-        onPromptSubmit={(text) => {
-          void sendUserMessage(text);
+        pendingAttachments={pendingAttachments}
+        onFilesSelected={(files) => {
+          void addFiles(files);
+        }}
+        onRemoveAttachment={(id) =>
+          setPendingAttachments((prev) => prev.filter((a) => a.id !== id))
+        }
+        onPromptSubmit={(text, attachments) => {
+          void sendUserMessage(text, attachments);
         }}
         onNavigate={(id) => {
           setRoute(id);
@@ -212,7 +246,7 @@ function App() {
           <span>Custom Taby Agent</span>
         </div>
         <div className="status-pill">
-          {route} · Stage 6 face
+          {route} · Stage 7 files
           {statusLine ? ` · ${statusLine}` : ""}
         </div>
       </header>
@@ -390,7 +424,7 @@ function App() {
         )}
 
         <p className="footer-note">
-          Stage 6 — official Taby GIFs in mock face window; face reactions toggle; stock animation IDs.
+          Stage 7 — file attach (picker + drag-drop), chips, txt/md extract; face alts + post-done delay.
           Nav pastels cycle by cell order (not by column). Releases use{" "}
           <code>gh release create</code>.
         </p>

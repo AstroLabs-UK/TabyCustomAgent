@@ -1,14 +1,25 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { NavToggle } from "./NavToggle";
+import type { ChatAttachment } from "../chat/attachments";
+import { AttachmentChips } from "../chat/AttachmentChips";
 
 export type CompactPromptProps = {
   connectionLabel: string;
   connectionOk: boolean;
   navExpanded: boolean;
   onToggleNav: () => void;
-  onSubmit: (text: string) => void;
+  onSubmit: (text: string, attachments: ChatAttachment[]) => void;
   onDismiss: () => void;
-  onUploadClick?: () => void;
+  onFilesSelected?: (files: FileList | File[]) => void;
+  pendingAttachments?: ChatAttachment[];
+  onRemoveAttachment?: (id: string) => void;
   onVoiceClick?: () => void;
 };
 
@@ -19,11 +30,15 @@ export function CompactPrompt({
   onToggleNav,
   onSubmit,
   onDismiss,
-  onUploadClick,
+  onFilesSelected,
+  pendingAttachments = [],
+  onRemoveAttachment,
   onVoiceClick,
 }: CompactPromptProps) {
   const [value, setValue] = useState("");
+  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!navExpanded) {
@@ -34,8 +49,8 @@ export function CompactPrompt({
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const text = value.trim();
-    if (!text) return;
-    onSubmit(text);
+    if (!text && pendingAttachments.length === 0) return;
+    onSubmit(text || "(attachment)", pendingAttachments);
     setValue("");
   }
 
@@ -46,13 +61,35 @@ export function CompactPrompt({
     }
   }
 
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files?.length) {
+      onFilesSelected?.(e.dataTransfer.files);
+    }
+  }
+
+  const canSend = Boolean(value.trim() || pendingAttachments.length);
+
   return (
     <div
-      className="hud-compact"
+      className={`hud-compact${dragOver ? " is-dragover" : ""}`}
       role="dialog"
       aria-label="Taby prompt"
       onKeyDown={handleKeyDown}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={onDrop}
     >
+      {pendingAttachments.length > 0 && (
+        <AttachmentChips
+          items={pendingAttachments}
+          onRemove={onRemoveAttachment}
+        />
+      )}
       <form className="hud-compact-form" onSubmit={handleSubmit}>
         <NavToggle expanded={navExpanded} onToggle={onToggleNav} />
         <span
@@ -64,17 +101,27 @@ export function CompactPrompt({
           ref={inputRef}
           className="hud-prompt-input"
           type="text"
-          placeholder="Ask anything…"
+          placeholder="Ask anything… or drop a file"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           aria-label="Prompt"
         />
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          hidden
+          onChange={(e) => {
+            if (e.target.files?.length) onFilesSelected?.(e.target.files);
+            e.target.value = "";
+          }}
+        />
         <button
           type="button"
           className="hud-icon-btn"
-          title="Attach file (soon)"
+          title="Attach file"
           aria-label="Attach file"
-          onClick={onUploadClick}
+          onClick={() => fileRef.current?.click()}
         >
           <UploadIcon />
         </button>
@@ -90,7 +137,7 @@ export function CompactPrompt({
         <button
           type="submit"
           className="hud-send-btn"
-          disabled={!value.trim()}
+          disabled={!canSend}
           aria-label="Send"
         >
           Send

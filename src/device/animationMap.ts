@@ -2,12 +2,12 @@
  * Animation ID map + validation (Stage 5–6).
  * IDs match Physical Taby stock firmware (amoled-1.64 pack).
  *
- * Chat turn mapping (user-tuned Stage 6):
- *   listening → listening_loop
- *   busy / AI loading → working_loop  (ff09215b.gif)
- *   done → confirmation, then return to idle_01_loop
- *   error → disappointed, then idle
- *   idle → idle_01_loop
+ * Chat turn mapping:
+ *   listening → listening_loop (+alts random)
+ *   busy / AI loading → working_loop (ff09215b) primary
+ *   done → confirmation (+alts), then idle after duration + extra delay
+ *   error → disappointed (+alts), then idle
+ *   idle → idle_01_loop (+alts)
  */
 
 export type FaceState = "listening" | "busy" | "done" | "error" | "idle";
@@ -15,20 +15,29 @@ export type FaceState = "listening" | "busy" | "done" | "error" | "idle";
 export type AnimationMap = {
   version: number;
   states: Record<FaceState, string>;
+  /** Optional alternates per state — resolveAnimation may pick at random */
+  alternatives: Partial<Record<FaceState, string[]>>;
   knownAnimationIds: string[];
-  /** Approximate clip lengths for one-shot → idle handoff (ms). */
   durationsMs: Record<string, number>;
+  /** Extra hold after one-shot before idle (ms) */
+  postDoneDelayMs: number;
 };
 
 export const DEFAULT_ANIMATION_MAP: AnimationMap = {
-  version: 4,
+  version: 5,
   states: {
     listening: "listening_loop",
-    /** AI loading — working_loop (ff09215b) per Stage 6 review */
     busy: "working_loop",
     done: "confirmation",
     error: "disappointed",
     idle: "idle_01_loop",
+  },
+  alternatives: {
+    listening: ["listening_loop", "listening_in"],
+    busy: ["working_loop"], // keep AI load on working_loop; room for more later
+    done: ["confirmation", "thumbs_up", "yeah", "task_completed"],
+    error: ["disappointed", "hello_disappointed"],
+    idle: ["idle_01_loop", "idle_02_loop"],
   },
   knownAnimationIds: [
     "listening_loop",
@@ -36,9 +45,13 @@ export const DEFAULT_ANIMATION_MAP: AnimationMap = {
     "busy_loop",
     "working_loop",
     "confirmation",
+    "thumbs_up",
+    "yeah",
+    "task_completed",
     "disappointed",
+    "hello_disappointed",
     "idle_01_loop",
-    "searching_loop",
+    "idle_02_loop",
     "listening",
     "thinking",
     "error",
@@ -50,32 +63,43 @@ export const DEFAULT_ANIMATION_MAP: AnimationMap = {
     busy_loop: 3500,
     working_loop: 1333,
     confirmation: 1958,
+    thumbs_up: 3167,
+    yeah: 2333,
+    task_completed: 3125,
     disappointed: 2792,
+    hello_disappointed: 4250,
     idle_01_loop: 9042,
+    idle_02_loop: 7875,
   },
+  /** Extra dwell after done/error one-shot before idle */
+  postDoneDelayMs: 1200,
 };
 
-/** Local GIF path for mock face window (public/taby-faces). */
 export const FACE_GIF_BY_ID: Record<string, string> = {
   listening_loop: "/taby-faces/listening_loop.gif",
   listening_in: "/taby-faces/listening_in.gif",
   busy_loop: "/taby-faces/busy_loop.gif",
   working_loop: "/taby-faces/working_loop.gif",
   confirmation: "/taby-faces/confirmation.gif",
+  thumbs_up: "/taby-faces/thumbs_up.gif",
+  yeah: "/taby-faces/yeah.gif",
+  task_completed: "/taby-faces/task_completed.gif",
   disappointed: "/taby-faces/disappointed.gif",
+  hello_disappointed: "/taby-faces/hello_disappointed.gif",
   idle_01_loop: "/taby-faces/idle_01_loop.gif",
+  idle_02_loop: "/taby-faces/idle_02_loop.gif",
   listening: "/taby-faces/listening_loop.gif",
   thinking: "/taby-faces/working_loop.gif",
   error: "/taby-faces/disappointed.gif",
   idle: "/taby-faces/idle_01_loop.gif",
 };
 
-/** Looping clips stay until replaced; one-shots return to idle after duration. */
 export const LOOPING_ANIMATION_IDS = new Set([
   "listening_loop",
   "busy_loop",
   "working_loop",
   "idle_01_loop",
+  "idle_02_loop",
   "searching_loop",
 ]);
 
@@ -89,6 +113,27 @@ export function durationMsFor(
   fallback = 2000
 ): number {
   return map.durationsMs[id] ?? fallback;
+}
+
+function pickRandom(ids: string[]): string {
+  return ids[Math.floor(Math.random() * ids.length)] ?? ids[0];
+}
+
+/**
+ * Resolve state → animation id.
+ * When alternatives exist, picks randomly among primary + alts (unique).
+ */
+export function resolveAnimation(
+  map: AnimationMap,
+  state: FaceState,
+  opts?: { random?: boolean }
+): { id: string; known: boolean } {
+  const primary = map.states[state];
+  const alts = map.alternatives[state] ?? [];
+  const pool = Array.from(new Set([primary, ...alts].filter(Boolean)));
+  const useRandom = opts?.random !== false && pool.length > 1;
+  const id = useRandom ? pickRandom(pool) : primary;
+  return { id, known: isKnownAnimationId(map, id) };
 }
 
 export function parseAnimationMap(raw: unknown): AnimationMap {
@@ -117,6 +162,16 @@ export function parseAnimationMap(raw: unknown): AnimationMap {
     ...((obj.durationsMs as Record<string, number>) || {}),
   };
 
+  const alternatives = {
+    ...DEFAULT_ANIMATION_MAP.alternatives,
+    ...((obj.alternatives as AnimationMap["alternatives"]) || {}),
+  };
+
+  const postDoneDelayMs =
+    typeof obj.postDoneDelayMs === "number"
+      ? obj.postDoneDelayMs
+      : DEFAULT_ANIMATION_MAP.postDoneDelayMs;
+
   return {
     version: typeof obj.version === "number" ? obj.version : 1,
     states: {
@@ -126,21 +181,15 @@ export function parseAnimationMap(raw: unknown): AnimationMap {
       error: s.error,
       idle: s.idle,
     },
+    alternatives,
     knownAnimationIds: known,
     durationsMs,
+    postDoneDelayMs,
   };
 }
 
 export function isKnownAnimationId(map: AnimationMap, id: string): boolean {
   return map.knownAnimationIds.includes(id);
-}
-
-export function resolveAnimation(
-  map: AnimationMap,
-  state: FaceState
-): { id: string; known: boolean } {
-  const id = map.states[state];
-  return { id, known: isKnownAnimationId(map, id) };
 }
 
 export function validateAnimationId(

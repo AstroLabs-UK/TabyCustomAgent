@@ -29,6 +29,11 @@ export const FACE_LABELS: Record<string, string> = {
   happy: "Happy",
   sad: "Sad",
   wave: "Wave",
+  thumbs_up: "Yes!",
+  yeah: "Yeah!",
+  task_completed: "Done!",
+  hello_disappointed: "Oops",
+  idle_02_loop: "Idle",
   READY: "Ready",
 };
 

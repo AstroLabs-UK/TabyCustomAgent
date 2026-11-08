@@ -818,3 +818,79 @@ kbd {
   padding: 16px;
   text-align: center;
 }
+
+/* ─── Stage 7: attachments ───────────────────────────────────── */
+
+.attach-chips {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 0.75rem;
+}
+
+.attach-chip.is-error {
+  border-color: #d97b7b;
+  background: #fdeceb;
+}
+
+.attach-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.attach-kind {
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+}
+
+.attach-name {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-size {
+  color: var(--color-text-muted);
+}
+
+.attach-err {
+  color: #a33;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  padding: 0 2px;
+}
+
+.hud-compact.is-dragover {
+  outline: 2px dashed var(--color-accent-strong);
+  outline-offset: 4px;
+}

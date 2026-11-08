@@ -1,23 +1,28 @@
-# Stage 6 report — CHANGES applied (not GO yet)
+# Stage 7 report — File upload into chat
 
-## Your notes addressed
-1. **AI loading** → `working_loop` (`ff09215b.gif`)
-2. **GIF restart** — each `play()` cache-busts + remounts `<img>` so the clip starts from frame 0
-3. **Return to idle** — one-shots (`confirmation`, `disappointed`, …) schedule `idle_01_loop` after clip duration
-4. **Orientation** — face GIFs use `transform: rotate(-90deg)` (90° left)
+## Stage 6 GO notes (shipped with this zip)
+- AI loading: `working_loop`
+- One-shots return to idle after **clip duration + 1200ms**
+- Random alts when available (`confirmation` / `thumbs_up` / `yeah` / `task_completed`, etc.)
+- GIF restart + −90° rotation (prior)
 
-## Mapping
-| State | ID |
-|-------|-----|
-| Listening | `listening_loop` |
-| AI loading | `working_loop` |
-| Done | `confirmation` → then `idle_01_loop` |
-| Error | `disappointed` → then `idle_01_loop` |
-| Idle | `idle_01_loop` |
+## Stage 7 deliverables
+| Item | Status |
+|------|--------|
+| File picker on HUD prompt | Done |
+| Drag-drop on prompt | Done |
+| Chips / previews; remove | Done |
+| Size limit (5 MB default) | Done |
+| txt / md text extract | Done |
+| PDF: clear MVP limitation | Done |
+| Images: preview chip | Done |
+| Message stores attachment metadata | Done |
 
-## Review
-- Loading = working_loop?
-- After done, returns to idle without a hard freeze?
-- Rotation look correct (90° left)?
+## Tests
+Stage 6: PASS · Stage 7: **9/9** PASS
+
+## Human review
+1. Chip UI clear when attaching?
+2. Oversize / PDF errors readable?
 
 Reply **GO** or **CHANGES**.

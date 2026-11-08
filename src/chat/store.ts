@@ -66,13 +66,15 @@ export function createConversation(title = "New chat"): Conversation {
 export function appendMessage(
   conv: Conversation,
   role: ChatMessage["role"],
-  content: string
+  content: string,
+  attachments?: ChatMessage["attachments"]
 ): Conversation {
   const msg: ChatMessage = {
     id: newId("msg"),
     role,
     content,
     createdAt: Date.now(),
+    attachments: attachments && attachments.length ? attachments : undefined,
   };
   return {
     ...conv,

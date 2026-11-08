@@ -12,8 +12,8 @@ Format: `Stage N — GO — YYYY-MM-DD — optional note`
 | 3 | GO | 2026-11-08 | Settings + AI key path |
 | 4 | GO | 2026-11-08 | Chat module (stream + HUD handoff) |
 | 5 | GO | 2026-11-08 | Device facade + mock face window |
-| 6 | GO | 2026-11-08 | Face reactions + official GIFs (busy≠working) |
-| 7 | not started | | |
+| 6 | GO | 2026-11-08 | Face GIFs + alts + post-done delay |
+| 7 | in progress | 2026-11-08 | File upload into chat |
 | 8 | not started | | |
 | 9 | not started | | |
 | 10 | not started | | |
