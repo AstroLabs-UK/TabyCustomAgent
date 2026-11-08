@@ -15,10 +15,16 @@ const STORAGE_KEY = "taby-mock-face-state";
 
 export const FACE_LABELS: Record<string, string> = {
   listening: "Listening",
+  listening_loop: "Listening",
+  listening_in: "Listening",
   thinking: "Thinking",
+  busy_loop: "Busy",
+  working_loop: "Working",
   confirmation: "Done!",
   error: "Oops",
+  disappointed: "Oops",
   idle: "Idle",
+  idle_01_loop: "Idle",
   happy: "Happy",
   sad: "Sad",
   wave: "Wave",

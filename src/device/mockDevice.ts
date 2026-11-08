@@ -32,7 +32,7 @@ export class MockDevice implements DeviceFacade {
     await delay(10);
     this.state = "connected";
     this.emit({ type: "ready", payload: "READY" });
-    this.publish("idle");
+    this.publish("idle_01_loop");
   }
 
   async disconnect(): Promise<void> {
@@ -40,7 +40,7 @@ export class MockDevice implements DeviceFacade {
     this.commandLog.length = 0;
     this.warnings.length = 0;
     publishFaceState({
-      animationId: "idle",
+      animationId: "idle_01_loop",
       label: "Offline",
       at: Date.now(),
       connected: false,
@@ -54,7 +54,7 @@ export class MockDevice implements DeviceFacade {
       this.warnings.push(check.reason);
       this.commandLog.push(`play:UNSUPPORTED:${animationId}`);
       this.emit({ type: "err", payload: check.reason });
-      this.publish("error");
+      this.publish("disappointed");
       return;
     }
     this.commandLog.push(`play:${animationId}`);
@@ -81,7 +81,7 @@ export class MockDevice implements DeviceFacade {
     this.ensureConnected();
     this.commandLog.push("CLEAR");
     this.emit({ type: "ok", payload: "OK" });
-    this.publish("idle");
+    this.publish("idle_01_loop");
   }
 
   onEvent(handler: (ev: DeviceEvent) => void): () => void {

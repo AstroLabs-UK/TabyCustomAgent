@@ -1,28 +1,21 @@
-# Stage 5 report — Device facade + simulators (+ mock face window)
+# Stage 6 report — Face reactions + official Taby GIFs
 
 ## Automated results
-- suite: **PASS** (Stage 5 unit tests)
-- notes:
-  - DeviceFacade / MockDevice / BLE+USB stubs / animation map / orchestrator (prior)
-  - **Mock face window**: opens on “Connect mock device”
-  - Face UI shows listening / thinking / confirmation / error / idle
-  - `play()` publishes via BroadcastChannel + localStorage for cross-window sync
-  - Tauri `WebviewWindow` label `face` (capabilities updated); browser `window.open` fallback
+- Stage 5: PASS · Stage 6: **10/10** PASS
 
-## How to see faces
-1. Open Settings → **Connect mock device**
-2. A second window **“Mock Taby Face”** opens
-3. Send a chat message (HUD or Chat) → face cycles listening → thinking → done
+## Behaviour
+- **Connect mock device** → opens Mock Taby Face window (only then — **not** on each message)
+- Face window plays **official GIFs** from `firmware-taby` amoled-1.64 pack
+- Chat turn drives stock IDs: `listening_loop` → `busy_loop` → `confirmation`
+- Settings: **Face reactions on chat** toggle (disabled = no play, no throw)
+- Offline device: skip play, status only
 
-## Deliverables
-| Item | Status |
-|------|--------|
-| DeviceFacade + Mock + BLE/USB stubs | Done |
-| Animation map + validation | Done |
-| Orchestrator listening→busy→done | Done |
-| Visible mock face second window | Done |
+## Assets
+`public/taby-faces/*.gif` — upstream TRIIIS LABS artwork; keep identified as Taby.
 
 ## Human review
-- Does the face window open and animate through a chat turn?
+1. Connect mock → does the GIF window open once?
+2. Chat turn — do real listening/busy/confirmation clips play?
+3. Toggle face reactions off — stays idle?
 
 Reply **GO** or **CHANGES**.

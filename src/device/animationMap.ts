@@ -1,6 +1,6 @@
 /**
- * Animation ID map + validation (Stage 5).
- * Stock firmware animation names — extend as firmware docs grow.
+ * Animation ID map + validation (Stage 5–6).
+ * IDs match Physical Taby stock firmware (amoled-1.64 pack).
  */
 
 export type FaceState = "listening" | "busy" | "done" | "error" | "idle";
@@ -12,25 +12,50 @@ export type AnimationMap = {
 };
 
 export const DEFAULT_ANIMATION_MAP: AnimationMap = {
-  version: 1,
+  version: 2,
   states: {
-    listening: "listening",
-    busy: "thinking",
+    listening: "listening_loop",
+    busy: "busy_loop",
     done: "confirmation",
-    error: "error",
-    idle: "idle",
+    error: "disappointed",
+    idle: "idle_01_loop",
   },
   knownAnimationIds: [
+    "listening_loop",
+    "listening_in",
+    "busy_loop",
+    "working_loop",
+    "confirmation",
+    "disappointed",
+    "idle_01_loop",
+    // aliases used in earlier stages / tests
     "listening",
     "thinking",
     "confirmation",
     "error",
     "idle",
-    "happy",
-    "sad",
-    "wave",
   ],
 };
+
+/** Local GIF path for mock face window (public/taby-faces). */
+export const FACE_GIF_BY_ID: Record<string, string> = {
+  listening_loop: "/taby-faces/listening_loop.gif",
+  listening_in: "/taby-faces/listening_in.gif",
+  busy_loop: "/taby-faces/busy_loop.gif",
+  working_loop: "/taby-faces/working_loop.gif",
+  confirmation: "/taby-faces/confirmation.gif",
+  disappointed: "/taby-faces/disappointed.gif",
+  idle_01_loop: "/taby-faces/idle_01_loop.gif",
+  // aliases → closest stock clip
+  listening: "/taby-faces/listening_loop.gif",
+  thinking: "/taby-faces/busy_loop.gif",
+  error: "/taby-faces/disappointed.gif",
+  idle: "/taby-faces/idle_01_loop.gif",
+};
+
+export function gifForAnimationId(id: string): string | null {
+  return FACE_GIF_BY_ID[id] ?? null;
+}
 
 export function parseAnimationMap(raw: unknown): AnimationMap {
   if (!raw || typeof raw !== "object") {
@@ -78,11 +103,6 @@ export function resolveAnimation(
   return { id, known: isKnownAnimationId(map, id) };
 }
 
-/**
- * Validate play target. Returns null if OK, else error message.
- * Unknown IDs are allowed with a warning flag for callers — orchestrator
- * still attempts play but tests assert unsupported handling.
- */
 export function validateAnimationId(
   map: AnimationMap,
   id: string

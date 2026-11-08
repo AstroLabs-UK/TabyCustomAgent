@@ -1,7 +1,7 @@
 /**
- * Chat ↔ face orchestrator (Stage 5).
- * Sequence per turn: listening → busy → done (or error).
- * Never throws when device offline — records status only.
+ * Chat ↔ face orchestrator (Stage 5–6).
+ * Sequence: listening → busy → done (or error).
+ * Offline / disabled: no throw — status only.
  */
 import type { DeviceFacade } from "./types";
 import {
@@ -21,6 +21,7 @@ export type OrchestratorLogEntry = {
 
 export class ChatDeviceOrchestrator {
   private map: AnimationMap;
+  private enabled = true;
   readonly log: OrchestratorLogEntry[] = [];
 
   constructor(
@@ -36,6 +37,10 @@ export class ChatDeviceOrchestrator {
 
   setAnimationMap(map: AnimationMap): void {
     this.map = map;
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
   }
 
   async onUserListening(): Promise<void> {
@@ -54,9 +59,6 @@ export class ChatDeviceOrchestrator {
     await this.playState("error", detail);
   }
 
-  /**
-   * Full software sequence used by tests + chat send path.
-   */
   async runTurnSequence(
     runAi: () => Promise<void>
   ): Promise<{ ok: boolean; error?: string }> {
@@ -81,6 +83,11 @@ export class ChatDeviceOrchestrator {
       animationId: id,
       ok: false,
     };
+    if (!this.enabled) {
+      entry.detail = detail ?? "face reactions disabled";
+      this.log.push(entry);
+      return;
+    }
     try {
       if (this.device.getConnectionState() !== "connected") {
         entry.detail = detail ?? "device offline — skipped play";

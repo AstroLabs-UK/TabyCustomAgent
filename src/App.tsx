@@ -115,11 +115,12 @@ function App() {
       setStatusLine("Thinking…");
       const device = getDevice(settings.device.transport);
       const orch = new ChatDeviceOrchestrator(device);
+      orch.setEnabled(settings.hud.faceReactionsEnabled !== false);
       try {
         if (device.getConnectionState() !== "connected" && settings.device.transport === "mock") {
           await mockDevice.connect();
           setDeviceState(mockDevice.getConnectionState());
-          void openFaceWindow();
+          // Face window opens only via "Connect mock device" — not on each message
         }
       } catch { /* offline ok */ }
       await orch.onUserListening();
@@ -173,7 +174,7 @@ function App() {
         setStreaming(false);
       }
     },
-    [activeConv, chat.conversations, persistChat, settings.ai, settings.device.transport, streaming]
+    [activeConv, chat.conversations, persistChat, settings.ai, settings.device.transport, settings.hud.faceReactionsEnabled, streaming]
   );
 
   const deviceOk = deviceState === "connected";
@@ -211,7 +212,7 @@ function App() {
           <span>Custom Taby Agent</span>
         </div>
         <div className="status-pill">
-          {route} · Stage 5 device
+          {route} · Stage 6 face
           {statusLine ? ` · ${statusLine}` : ""}
         </div>
       </header>
@@ -271,6 +272,20 @@ function App() {
                     type="checkbox"
                     checked={showHotZoneHint}
                     onChange={(e) => setShowHotZoneHint(e.target.checked)}
+                  />
+                </label>
+                <label className="field checkbox-field">
+                  <span>Face reactions on chat</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.hud.faceReactionsEnabled !== false}
+                    onChange={(e) => {
+                      setSettings((s) => ({
+                        ...s,
+                        hud: { ...s.hud, faceReactionsEnabled: e.target.checked },
+                      }));
+                      setSaved(false);
+                    }}
                   />
                 </label>
               </div>
@@ -375,7 +390,7 @@ function App() {
         )}
 
         <p className="footer-note">
-          Stage 5 — device facade, animation map, chat→face orchestrator (listening → busy → done).
+          Stage 6 — official Taby GIFs in mock face window; face reactions toggle; stock animation IDs.
           Nav pastels cycle by cell order (not by column). Releases use{" "}
           <code>gh release create</code>.
         </p>

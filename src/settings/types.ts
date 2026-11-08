@@ -6,6 +6,7 @@ export interface AppSettings {
   hud: {
     dwellMs: number;
     alwaysOnTop: boolean;
+    faceReactionsEnabled: boolean;
   };
   device: {
     transport: DeviceTransport;
@@ -24,6 +25,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hud: {
     dwellMs: 500,
     alwaysOnTop: true,
+    faceReactionsEnabled: true,
   },
   device: {
     transport: "mock",
