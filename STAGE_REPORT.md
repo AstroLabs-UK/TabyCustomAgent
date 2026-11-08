@@ -105,3 +105,13 @@ Changes:
 - Fail-fast **`npm run build`** (Vite only) before Tauri bundling.
 - Release gating via a small bash step (main/master/tags only).
 - Anticipated follow-on issues addressed: NODE_ENV/devDeps, CLI path, release body.
+
+## Patch — explicit node paths for vite/tsc (Windows PATH)
+
+Same class of failure as Tauri CLI: `vite` not on PATH under `npm run` on
+Windows runners.
+
+- `build` / `dev` / `preview` → `node ./node_modules/vite/bin/vite.js …`
+- `typecheck` → `node ./node_modules/typescript/bin/tsc --noEmit`
+- Moved `vite`, `@vitejs/plugin-react`, `typescript` into **dependencies**
+- Workflow verifies `node_modules/vite/bin/vite.js` exists before build

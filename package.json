@@ -5,34 +5,34 @@
   "type": "module",
   "description": "Custom Taby desktop agent \u2014 local-first AI HUD that drives Physical Taby over BLE",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "node ./node_modules/vite/bin/vite.js",
+    "build": "node ./node_modules/vite/bin/vite.js build",
+    "preview": "node ./node_modules/vite/bin/vite.js preview",
     "tauri": "node scripts/run-tauri.mjs",
     "tauri:dev": "node scripts/run-tauri.mjs dev",
     "tauri:build": "node scripts/run-tauri.mjs build",
-    "test": "node scripts/run-stage0-tests.mjs && (vitest run || true)",
-    "test:watch": "vitest",
+    "test": "node scripts/run-stage0-tests.mjs && (node ./node_modules/vitest/vitest.mjs run || true)",
+    "test:watch": "node ./node_modules/vitest/vitest.mjs",
     "package-windows": "node scripts/package-windows.mjs",
     "package-linux": "node scripts/package-linux.mjs",
     "package-repo-zip": "node scripts/package-repo-zip.mjs",
-    "check": "tsc --noEmit && vitest run",
+    "check": "node ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/vitest/vitest.mjs run",
     "test:unit": "node scripts/run-stage0-tests.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit"
   },
   "dependencies": {
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-opener": "^2.0.0",
-    "@tauri-apps/cli": "^2.0.0"
+    "@tauri-apps/cli": "^2.0.0",
+    "vite": "^6.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.8.3"
   },
   "devDependencies": {
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "~5.8.3",
-    "vite": "^6.3.5",
     "vitest": "^3.2.4",
     "jsdom": "^26.1.0"
   }

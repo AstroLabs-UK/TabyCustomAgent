@@ -48,10 +48,20 @@ jobs:
         env:
           NODE_ENV: development
 
-      - name: Typecheck + Vite production build (fail fast)
+      - name: Verify frontend toolchain
+        shell: pwsh
+        run: |
+          Write-Host "node_modules/vite exists:" (Test-Path "node_modules/vite/bin/vite.js")
+          Write-Host "node_modules/typescript exists:" (Test-Path "node_modules/typescript/bin/tsc")
+          Write-Host "node_modules/@tauri-apps/cli exists:" (Test-Path "node_modules/@tauri-apps/cli")
+          Get-ChildItem node_modules/vite -ErrorAction SilentlyContinue | Select-Object -First 10 Name
+          if (-not (Test-Path "node_modules/vite/bin/vite.js")) {
+            Write-Error "vite not installed — npm ci likely skipped devDependencies"
+            exit 1
+          }
+
+      - name: Vite production build (fail fast)
         run: npm run build
-        env:
-          NODE_ENV: production
 
       - name: Decide whether to publish a GitHub Release
         id: release
