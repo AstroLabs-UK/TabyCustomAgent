@@ -1,76 +1,53 @@
 /**
- * Stage 2 nav model — 2×5 labels frozen.
- * Pastels: five tokens applied in **row-major cell order**, then repeated
- * (index % 5). Not paired by column/row-same-color.
+ * Navigation model — official Taby-style order (screenshot-aligned).
  */
 
 export type NavCellId =
   | "chat"
   | "home"
   | "tasks"
-  | "reminders"
-  | "today"
-  | "focus"
-  | "settings"
   | "notes"
+  | "reminders"
   | "habits"
-  | "this_week";
+  | "today"
+  | "this_week"
+  | "focus"
+  | "feedback"
+  | "settings";
 
 export type NavCell = {
   id: NavCellId;
   label: string;
   row: number;
   col: number;
-  /** 0–9 row-major index */
   index: number;
-  pastelVar: string;
-  pastelHex: string;
+  icon: string;
 };
 
-export const NAV_ROWS = 5;
 export const NAV_COLS = 2;
 
-/** Five pastel tokens in order (DESIGN_TOKENS.md). */
-export const ROW_PASTELS = [
-  { token: "--pastel-row-1", hex: "#DCE6F5", name: "blue" },
-  { token: "--pastel-row-2", hex: "#FCE4EC", name: "pink" },
-  { token: "--pastel-row-3", hex: "#FFE9DB", name: "peach" },
-  { token: "--pastel-row-4", hex: "#E8F2EC", name: "green" },
-  { token: "--pastel-row-5", hex: "#EDE7F6", name: "lavender" },
-] as const;
-
-const LABELS: { id: NavCellId; label: string }[] = [
-  { id: "chat", label: "Chat" },
-  { id: "home", label: "Home" },
-  { id: "tasks", label: "Tasks" },
-  { id: "reminders", label: "Reminders" },
-  { id: "today", label: "Today" },
-  { id: "focus", label: "Focus" },
-  { id: "settings", label: "Settings" },
-  { id: "notes", label: "Notes" },
-  { id: "habits", label: "Habits" },
-  { id: "this_week", label: "This week" },
+/** Row-major order matching official HUD screenshot. */
+const LABELS: { id: NavCellId; label: string; icon: string }[] = [
+  { id: "chat", label: "Chat", icon: "chat" },
+  { id: "home", label: "Home", icon: "home" },
+  { id: "tasks", label: "Tasks", icon: "tasks" },
+  { id: "notes", label: "Notes", icon: "notes" },
+  { id: "reminders", label: "Reminders", icon: "reminders" },
+  { id: "habits", label: "Habits", icon: "habits" },
+  { id: "today", label: "Today", icon: "today" },
+  { id: "this_week", label: "This week", icon: "week" },
+  { id: "focus", label: "Focus", icon: "focus" },
+  { id: "feedback", label: "Feedback", icon: "feedback" },
+  { id: "settings", label: "Settings", icon: "settings" },
 ];
 
-function pastelForIndex(index: number) {
-  return ROW_PASTELS[index % ROW_PASTELS.length];
-}
-
-/** Exactly 10 cells, row-major; pastel = index % 5. */
 export const NAV_GRID: readonly NavCell[] = LABELS.map((item, index) => {
   const row = Math.floor(index / NAV_COLS);
   const col = index % NAV_COLS;
-  const p = pastelForIndex(index);
-  return {
-    id: item.id,
-    label: item.label,
-    row,
-    col,
-    index,
-    pastelVar: p.token,
-    pastelHex: p.hex,
-  };
+  return { id: item.id, label: item.label, row, col, index, icon: item.icon };
 });
+
+export const NAV_ROWS = Math.ceil(NAV_GRID.length / NAV_COLS);
 
 export function cellAt(row: number, col: number): NavCell | undefined {
   return NAV_GRID.find((c) => c.row === row && c.col === col);
@@ -90,6 +67,7 @@ export function moveFocus(
   if (dir === "down") row = Math.min(NAV_ROWS - 1, row + 1);
   if (dir === "left") col = Math.max(0, col - 1);
   if (dir === "right") col = Math.min(NAV_COLS - 1, col + 1);
+  // Settings is alone on last row left — clamp
   return cellAt(row, col)?.id ?? currentId;
 }
 

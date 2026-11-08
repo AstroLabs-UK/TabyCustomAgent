@@ -15,6 +15,10 @@ import {
 import "../styles/tokens.css";
 import "../App.css";
 
+const IDLE_VARIANTS = ["idle_01_loop", "idle_02_loop"] as const;
+/** Still hold at end of each idle loop before switching (ms) */
+const IDLE_STILL_PAUSE_MS = 900;
+
 const INITIAL: FaceDisplayState = {
   animationId: "idle_01_loop",
   label: "Idle",
@@ -27,6 +31,12 @@ function gifSrc(id: string, token: number): string | null {
   if (!base) return null;
   const sep = base.includes("?") ? "&" : "?";
   return `${base}${sep}t=${token}`;
+}
+
+function nextIdle(current: string): string {
+  const idx = IDLE_VARIANTS.indexOf(current as (typeof IDLE_VARIANTS)[number]);
+  if (idx < 0) return IDLE_VARIANTS[0];
+  return IDLE_VARIANTS[(idx + 1) % IDLE_VARIANTS.length];
 }
 
 export function FaceWindowApp() {
@@ -52,23 +62,45 @@ export function FaceWindowApp() {
     const id = face.animationId || "idle_01_loop";
     lastId.current = id;
     if (!face.connected) return;
-    if (LOOPING_ANIMATION_IDS.has(id)) return;
-    if (id === "idle_01_loop" || id === "idle" || id === "idle_02_loop") return;
 
-    const clipMs = durationMsFor(DEFAULT_ANIMATION_MAP, id);
-    const extra = DEFAULT_ANIMATION_MAP.postDoneDelayMs ?? 1200;
-    const ms = clipMs + extra;
-    idleTimer.current = setTimeout(() => {
-      if (lastId.current !== id) return;
-      const idlePick =
-        Math.random() < 0.5 ? "idle_01_loop" : "idle_02_loop";
-      publishFaceState({
-        animationId: idlePick,
-        label: FACE_LABELS[idlePick] ?? "Idle",
-        at: Date.now(),
-        connected: true,
-      });
-    }, ms);
+    const isIdle =
+      id === "idle_01_loop" ||
+      id === "idle_02_loop" ||
+      id === "idle";
+
+    // One-shots → idle after duration + postDone delay
+    if (!LOOPING_ANIMATION_IDS.has(id) && !isIdle) {
+      const clipMs = durationMsFor(DEFAULT_ANIMATION_MAP, id);
+      const extra = DEFAULT_ANIMATION_MAP.postDoneDelayMs ?? 1200;
+      idleTimer.current = setTimeout(() => {
+        if (lastId.current !== id) return;
+        const pick = IDLE_VARIANTS[Math.floor(Math.random() * IDLE_VARIANTS.length)];
+        publishFaceState({
+          animationId: pick,
+          label: FACE_LABELS[pick] ?? "Idle",
+          at: Date.now(),
+          connected: true,
+        });
+      }, clipMs + extra);
+      return () => {
+        if (idleTimer.current) clearTimeout(idleTimer.current);
+      };
+    }
+
+    // Idle loops: play full duration, short still pause, then different idle
+    if (isIdle) {
+      const clipMs = durationMsFor(DEFAULT_ANIMATION_MAP, id, 8000);
+      idleTimer.current = setTimeout(() => {
+        if (lastId.current !== id) return;
+        const nxt = nextIdle(id === "idle" ? "idle_01_loop" : id);
+        publishFaceState({
+          animationId: nxt,
+          label: FACE_LABELS[nxt] ?? "Idle",
+          at: Date.now(),
+          connected: true,
+        });
+      }, clipMs + IDLE_STILL_PAUSE_MS);
+    }
 
     return () => {
       if (idleTimer.current) clearTimeout(idleTimer.current);

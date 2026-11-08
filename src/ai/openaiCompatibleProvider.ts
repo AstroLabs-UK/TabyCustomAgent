@@ -1,8 +1,9 @@
 import type { AiMessage, AiProvider, AiProviderConfig, AiStreamChunk } from "./types";
+import { TOOL_DEFINITIONS } from "../tools/registry";
 
 /**
  * Live OpenAI-compatible chat completions (Groq, OpenAI, etc.).
- * Streams SSE `data:` lines; never logs the API key.
+ * Streams SSE; supports tool_calls when the model emits them.
  */
 export class OpenAiCompatibleProvider implements AiProvider {
   readonly id = "openai-compatible";
@@ -21,7 +22,10 @@ export class OpenAiCompatibleProvider implements AiProvider {
       return;
     }
 
-    const base = (config.baseUrl || "https://api.groq.com/openai/v1").replace(/\/$/, "");
+    const base = (config.baseUrl || "https://api.groq.com/openai/v1").replace(
+      /\/$/,
+      ""
+    );
     const url = `${base}/chat/completions`;
 
     let response: Response;
@@ -36,16 +40,17 @@ export class OpenAiCompatibleProvider implements AiProvider {
           model: config.model,
           temperature: config.temperature ?? 0.7,
           stream: true,
+          tools: TOOL_DEFINITIONS,
           messages: messages.map((m) => ({
-            role: m.role,
+            role: m.role === "tool" ? "tool" : m.role,
             content: m.content,
+            name: m.name,
           })),
         }),
         signal,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      // Never include headers/key in error text
       yield { type: "error", error: `Network error: ${msg}` };
       return;
     }
@@ -54,8 +59,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
       let detail = `${response.status} ${response.statusText}`;
       try {
         const t = await response.text();
-        // Redact any accidental key echo
-        detail = t.slice(0, 200).replace(key, "[redacted]");
+        detail = t.slice(0, 240).replace(key, "[redacted]");
       } catch {
         /* ignore */
       }
@@ -71,6 +75,10 @@ export class OpenAiCompatibleProvider implements AiProvider {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    const toolBuf: Record<
+      number,
+      { name: string; args: string }
+    > = {};
 
     try {
       while (true) {
@@ -87,23 +95,54 @@ export class OpenAiCompatibleProvider implements AiProvider {
           const trimmed = line.trim();
           if (!trimmed.startsWith("data:")) continue;
           const data = trimmed.slice(5).trim();
-          if (data === "[DONE]") {
-            yield { type: "done" };
-            return;
-          }
+          if (data === "[DONE]") continue;
           try {
             const json = JSON.parse(data) as {
-              choices?: Array<{ delta?: { content?: string } }>;
+              choices?: Array<{
+                delta?: {
+                  content?: string;
+                  tool_calls?: Array<{
+                    index?: number;
+                    function?: { name?: string; arguments?: string };
+                  }>;
+                };
+              }>;
             };
-            const token = json.choices?.[0]?.delta?.content;
-            if (token) yield { type: "token", text: token };
+            const delta = json.choices?.[0]?.delta;
+            if (delta?.content) {
+              yield { type: "token", text: delta.content };
+            }
+            if (delta?.tool_calls) {
+              for (const tc of delta.tool_calls) {
+                const idx = tc.index ?? 0;
+                if (!toolBuf[idx]) toolBuf[idx] = { name: "", args: "" };
+                if (tc.function?.name) toolBuf[idx].name += tc.function.name;
+                if (tc.function?.arguments)
+                  toolBuf[idx].args += tc.function.arguments;
+              }
+            }
           } catch {
-            /* skip malformed chunk */
+            /* skip partial */
           }
         }
       }
     } finally {
       reader.releaseLock();
+    }
+
+    for (const tc of Object.values(toolBuf)) {
+      if (!tc.name) continue;
+      let args: unknown = {};
+      try {
+        args = tc.args ? JSON.parse(tc.args) : {};
+      } catch {
+        args = {};
+      }
+      yield {
+        type: "tool_call",
+        toolName: tc.name,
+        toolArgs: args,
+      };
     }
     yield { type: "done" };
   }

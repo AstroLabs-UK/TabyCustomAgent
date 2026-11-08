@@ -1,28 +1,15 @@
-# Stages 8–15 report (batch for user testing)
+# UI + tools pass (post Stage 15)
 
-User requested complete through Stage 15, then test.
+## Changes
+1. **HUD looks like official Taby** — dark glass panel, circular X / mic / attach / send, icon+label nav
+2. **Nav order** matches screenshot: Chat|Home, Tasks|Notes, Reminders|Habits, Today|This week, Focus|Feedback, Settings
+3. **Idle loops cycle** — after each idle GIF duration + ~900ms still pause → next idle variant
+4. **AI tools** — mock keyword intents + live `tools` API; can create/complete/delete tasks, reminders, notes, habits, start focus
 
-## Automated results
-- Stages 0–7 prior scripts: PASS
-- Stages 8–15 combined: **17/17 PASS**
+## Tests
+Stage 2 (nav): PASS · Stages 8–15: PASS
 
-## Delivered by stage
-
-| Stage | Feature | Status |
-|------:|---------|--------|
-| 8 | Voice: record SM, mock STT, HUD mic, face listening | Done (mock audio) |
-| 9 | Tasks CRUD + tools `create_task` / `complete_task` | Done |
-| 10 | Reminders + tick scheduler (fake clock in tests) | Done |
-| 11 | Notes list/editor, search, add-to-chat | Done |
-| 12 | Today + This week aggregates | Done |
-| 13 | Focus presets/timer/session log + lock-in face try | Done |
-| 14 | Habits check-in + streak calc | Done |
-| 15 | Home dashboard cards + empty state | Done |
-
-## Nav
-Use the 2×5 grid to open: Home, Chat, Tasks, Reminders, Today, Focus, Settings, Notes, Habits, This week.
-
-## Human review (your pass)
-Walk the nav modules, try voice mock, create a task/reminder/habit, start focus, open Home.
-
-Reply **GO** (optionally per stage) or **CHANGES**.
+## Try
+- Hover top → expand menu (should match dark official look)
+- “add task buy milk” with mock AI
+- Connect mock face → watch idle variants swap after each loop

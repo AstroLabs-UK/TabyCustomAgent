@@ -1068,3 +1068,173 @@ kbd {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Official Taby-style HUD (dark glass) ───────────────────── */
+
+.hud-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, calc(100vw - 24px));
+}
+
+.hud-compact {
+  width: 100%;
+  background: rgba(42, 42, 46, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  color: #f4f4f5;
+  padding: 8px 10px;
+  backdrop-filter: blur(16px);
+}
+
+.hud-compact.is-dragover {
+  outline: 2px dashed rgba(255, 255, 255, 0.35);
+}
+
+.hud-compact-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-nav-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.hud-nav-toggle.is-expanded {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.hud-connection-dot {
+  display: none; /* cleaner official look */
+}
+
+.hud-prompt-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #f4f4f5;
+  font: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  min-width: 0;
+}
+
+.hud-prompt-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.hud-icon-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.hud-icon-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hud-send-btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #f4f4f5;
+  color: #18181b;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.hud-send-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.hud-nav-panel--official {
+  width: 100%;
+  background: rgba(42, 42, 46, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  padding: 12px 14px 14px;
+  color: #f4f4f5;
+  backdrop-filter: blur(16px);
+}
+
+.hud-nav-grid--official {
+  display: grid;
+  gap: 4px 18px;
+}
+
+.hud-nav-cell--official {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  background: transparent;
+  color: #f4f4f5;
+  border-radius: 12px;
+  padding: 10px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.hud-nav-cell--official:hover,
+.hud-nav-cell--official.is-focused {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hud-nav-cell--official .hud-nav-label {
+  color: #f4f4f5 !important;
+  font-weight: 500;
+  text-shadow: none;
+  font-size: 0.95rem;
+}
+
+.hud-nav-icon {
+  width: 22px;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.92);
+  flex-shrink: 0;
+}
+
+.hud-last-prompt,
+.hud-route-chip {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(42, 42, 46, 0.8);
+  border-radius: 12px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+.attach-chip {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f4f4f5;
+}

@@ -46,7 +46,7 @@ import {
   ThisWeekView,
 } from "./modules/ModuleViews";
 import { tickReminders } from "./modules/reminders";
-import { invokeTool } from "./tools/registry";
+import { invokeTool, SYSTEM_TOOL_PROMPT } from "./tools/registry";
 
 type RouteId = NavCellId | "shell";
 
@@ -213,20 +213,30 @@ function App() {
         const history = conv.messages
           .filter((m) => m.content.length > 0 || m.role === "user")
           .map((m) => ({
-            role: m.role as "user" | "assistant" | "system",
+            role: m.role as "user" | "assistant" | "system" | "tool",
             content: m.content,
           }));
-        const forApi = history.filter(
-          (m, i) =>
-            !(
-              i === history.length - 1 &&
-              m.role === "assistant" &&
-              !m.content
-            )
-        );
+        const forApi = [
+          { role: "system" as const, content: SYSTEM_TOOL_PROMPT },
+          ...history.filter(
+            (m, i) =>
+              !(
+                i === history.length - 1 &&
+                m.role === "assistant" &&
+                !m.content
+              )
+          ),
+        ];
 
         let acc = "";
+        const toolNotes: string[] = [];
         for await (const chunk of completeStream(forApi, settings.ai)) {
+          if (chunk.type === "tool_call" && chunk.toolName) {
+            const args = (chunk.toolArgs ?? {}) as Record<string, unknown>;
+            const result = invokeTool(chunk.toolName, args);
+            toolNotes.push(`${chunk.toolName}: ${result.message}`);
+            setStatusLine(result.message);
+          }
           if (chunk.type === "token" && chunk.text) {
             acc += chunk.text;
             const updated = replaceAssistantTail(conv, acc);
@@ -250,6 +260,17 @@ function App() {
             await orch.onTurnError(chunk.error);
             return;
           }
+        }
+        if (toolNotes.length) {
+          const summary =
+            (acc ? acc + "\n\n" : "") +
+            toolNotes.map((n) => `✓ ${n}`).join("\n");
+          const updated = replaceAssistantTail(conv, summary.trim());
+          conv = updated;
+          conversations = conversations.map((c) =>
+            c.id === conv.id ? updated : c
+          );
+          persistChat({ conversations, activeId: conv.id });
         }
         await orch.onTurnDone();
         setStatusLine("");
@@ -413,6 +434,14 @@ function App() {
         {route === "habits" && <HabitsView />}
         {route === "today" && <TodayView />}
         {route === "this_week" && <ThisWeekView />}
+        {route === "feedback" && (
+          <section className="card">
+            <h2>Feedback</h2>
+            <p className="hint">
+              Placeholder — tell us what to improve. Wire to GitHub issues later.
+            </p>
+          </section>
+        )}
         {route === "settings" && (
           <>
             <section className="card">
