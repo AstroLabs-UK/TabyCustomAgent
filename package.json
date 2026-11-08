@@ -11,13 +11,13 @@
     "tauri": "node scripts/run-tauri.mjs",
     "tauri:dev": "node scripts/run-tauri.mjs dev",
     "tauri:build": "node scripts/run-tauri.mjs build",
-    "test": "node scripts/run-stage0-tests.mjs && node scripts/run-stage1-tests.mjs && node scripts/run-stage2-tests.mjs && node scripts/run-stage3-tests.mjs && node scripts/run-stage4-tests.mjs && node scripts/run-stage5-tests.mjs && node scripts/run-stage6-tests.mjs && node scripts/run-stage7-tests.mjs",
+    "test": "node scripts/run-stage0-tests.mjs && node scripts/run-stage1-tests.mjs && node scripts/run-stage2-tests.mjs && node scripts/run-stage3-tests.mjs && node scripts/run-stage4-tests.mjs && node scripts/run-stage5-tests.mjs && node scripts/run-stage6-tests.mjs && node scripts/run-stage7-tests.mjs && node scripts/run-stage8-15-tests.mjs",
     "test:watch": "node ./node_modules/vitest/vitest.mjs",
     "package-windows": "node scripts/package-windows.mjs",
     "package-linux": "node scripts/package-linux.mjs",
     "package-repo-zip": "node scripts/package-repo-zip.mjs",
     "check": "node ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/vitest/vitest.mjs run",
-    "test:unit": "node scripts/run-stage0-tests.mjs && node scripts/run-stage1-tests.mjs && node scripts/run-stage2-tests.mjs && node scripts/run-stage3-tests.mjs && node scripts/run-stage4-tests.mjs && node scripts/run-stage5-tests.mjs && node scripts/run-stage6-tests.mjs && node scripts/run-stage7-tests.mjs",
+    "test:unit": "node scripts/run-stage0-tests.mjs && node scripts/run-stage1-tests.mjs && node scripts/run-stage2-tests.mjs && node scripts/run-stage3-tests.mjs && node scripts/run-stage4-tests.mjs && node scripts/run-stage5-tests.mjs && node scripts/run-stage6-tests.mjs && node scripts/run-stage7-tests.mjs && node scripts/run-stage8-15-tests.mjs",
     "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
     "test:stage1": "node scripts/run-stage1-tests.mjs",
     "test:stage2": "node scripts/run-stage2-tests.mjs",
@@ -25,7 +25,8 @@
     "test:stage4": "node scripts/run-stage4-tests.mjs",
     "test:stage5": "node scripts/run-stage5-tests.mjs",
     "test:stage6": "node scripts/run-stage6-tests.mjs",
-    "test:stage7": "node scripts/run-stage7-tests.mjs"
+    "test:stage7": "node scripts/run-stage7-tests.mjs",
+    "test:stage8-15": "node scripts/run-stage8-15-tests.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

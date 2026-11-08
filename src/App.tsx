@@ -7,7 +7,12 @@ import {
   saveSettings,
   type AppSettings,
 } from "./settings";
-import { mockDevice, ChatDeviceOrchestrator, getDevice, openFaceWindow } from "./device";
+import {
+  mockDevice,
+  ChatDeviceOrchestrator,
+  getDevice,
+  openFaceWindow,
+} from "./device";
 import { completeStream, aiStatusLabel, aiStatusOk } from "./ai";
 import { HudOverlay } from "./hud";
 import type { NavCellId } from "./hud";
@@ -25,24 +30,74 @@ import {
   type ChatState,
   type ChatAttachment,
 } from "./chat";
+import {
+  mockStt,
+  reduceRecording,
+  type RecordingPhase,
+} from "./voice";
+import {
+  HomeView,
+  TasksView,
+  RemindersView,
+  NotesView,
+  FocusView,
+  HabitsView,
+  TodayView,
+  ThisWeekView,
+} from "./modules/ModuleViews";
+import { tickReminders } from "./modules/reminders";
+import { invokeTool } from "./tools/registry";
 
 type RouteId = NavCellId | "shell";
 
 function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [saved, setSaved] = useState(false);
-  const [deviceState, setDeviceState] = useState(mockDevice.getConnectionState());
+  const [deviceState, setDeviceState] = useState(
+    mockDevice.getConnectionState()
+  );
   const [showHotZoneHint, setShowHotZoneHint] = useState(true);
-  const [route, setRoute] = useState<RouteId>("chat");
-  const [chat, setChat] = useState<ChatState>({ conversations: [], activeId: null });
+  const [route, setRoute] = useState<RouteId>("home");
+  const [chat, setChat] = useState<ChatState>({
+    conversations: [],
+    activeId: null,
+  });
   const [streaming, setStreaming] = useState(false);
   const [statusLine, setStatusLine] = useState("");
-  const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<
+    ChatAttachment[]
+  >([]);
+  const [voicePhase, setVoicePhase] = useState<RecordingPhase>("idle");
+  const [recSeconds, setRecSeconds] = useState(0);
 
   useEffect(() => {
     setSettings(loadSettings());
     setChat(loadChatState());
   }, []);
+
+  // Reminder ticker
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const fired = tickReminders(Date.now());
+      if (fired.length) {
+        setStatusLine(`Reminder: ${fired[0].title}`);
+        if (fired[0].faceNudge && mockDevice.getConnectionState() === "connected") {
+          void mockDevice.play("drink_water").catch(() => {
+            void mockDevice.play("confirmation").catch(() => undefined);
+          });
+        }
+      }
+    }, 4000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Voice recording timer
+  useEffect(() => {
+    if (voicePhase !== "recording") return;
+    setRecSeconds(0);
+    const id = window.setInterval(() => setRecSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [voicePhase]);
 
   const persistChat = useCallback((next: ChatState) => {
     setChat(next);
@@ -86,17 +141,6 @@ function App() {
     }
   }
 
-  const ensureActiveConversation = useCallback((): Conversation => {
-    if (activeConv) return activeConv;
-    const conv = createConversation();
-    const next: ChatState = {
-      conversations: [conv, ...chat.conversations],
-      activeId: conv.id,
-    };
-    persistChat(next);
-    return conv;
-  }, [activeConv, chat.conversations, persistChat]);
-
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const list = Array.from(files);
     const next: ChatAttachment[] = [];
@@ -130,7 +174,12 @@ function App() {
           ? `${trimmed}\n\n${context}`
           : context || trimmed;
 
-      conv = appendMessage(conv, "user", userContent, atts.length ? atts : undefined);
+      conv = appendMessage(
+        conv,
+        "user",
+        userContent,
+        atts.length ? atts : undefined
+      );
       setPendingAttachments([]);
       conversations = conversations.map((c) => (c.id === conv.id ? conv : c));
       if (!conversations.find((c) => c.id === conv.id)) {
@@ -144,12 +193,16 @@ function App() {
       const orch = new ChatDeviceOrchestrator(device);
       orch.setEnabled(settings.hud.faceReactionsEnabled !== false);
       try {
-        if (device.getConnectionState() !== "connected" && settings.device.transport === "mock") {
+        if (
+          device.getConnectionState() !== "connected" &&
+          settings.device.transport === "mock"
+        ) {
           await mockDevice.connect();
           setDeviceState(mockDevice.getConnectionState());
-          // Face window opens only via "Connect mock device" — not on each message
         }
-      } catch { /* offline ok */ }
+      } catch {
+        /* offline ok */
+      }
       await orch.onUserListening();
       await orch.onAssistantBusy();
       conv = appendMessage(conv, "assistant", "");
@@ -159,10 +212,17 @@ function App() {
       try {
         const history = conv.messages
           .filter((m) => m.content.length > 0 || m.role === "user")
-          .map((m) => ({ role: m.role as "user" | "assistant" | "system", content: m.content }));
-        // Last assistant is empty placeholder — drop it for the request
+          .map((m) => ({
+            role: m.role as "user" | "assistant" | "system",
+            content: m.content,
+          }));
         const forApi = history.filter(
-          (m, i) => !(i === history.length - 1 && m.role === "assistant" && !m.content)
+          (m, i) =>
+            !(
+              i === history.length - 1 &&
+              m.role === "assistant" &&
+              !m.content
+            )
         );
 
         let acc = "";
@@ -201,8 +261,43 @@ function App() {
         setStreaming(false);
       }
     },
-    [activeConv, chat.conversations, persistChat, settings.ai, settings.device.transport, settings.hud.faceReactionsEnabled, streaming]
+    [
+      activeConv,
+      chat.conversations,
+      persistChat,
+      settings.ai,
+      settings.device.transport,
+      settings.hud.faceReactionsEnabled,
+      streaming,
+    ]
   );
+
+  async function handleVoiceClick() {
+    if (voicePhase === "idle" || voicePhase === "error") {
+      setVoicePhase((p) => reduceRecording(p, { type: "start" }));
+      if (mockDevice.getConnectionState() === "connected") {
+        void mockDevice.play("listening_loop").catch(() => undefined);
+      }
+      return;
+    }
+    if (voicePhase === "recording") {
+      setVoicePhase((p) => reduceRecording(p, { type: "stop" }));
+      try {
+        // Mock blob — real MediaRecorder wires in later
+        const blob = new Blob(["mock-audio"], { type: "audio/webm" });
+        const result = await mockStt.transcribe(blob);
+        setVoicePhase((p) => reduceRecording(p, { type: "transcript_ok" }));
+        await sendUserMessage(result.transcript, []);
+      } catch (e) {
+        setVoicePhase((p) =>
+          reduceRecording(p, {
+            type: "fail",
+            message: e instanceof Error ? e.message : String(e),
+          })
+        );
+      }
+    }
+  }
 
   const deviceOk = deviceState === "connected";
   const aiOk = aiStatusOk(settings.ai);
@@ -226,6 +321,9 @@ function App() {
         onPromptSubmit={(text, attachments) => {
           void sendUserMessage(text, attachments);
         }}
+        onVoiceClick={() => {
+          void handleVoiceClick();
+        }}
         onNavigate={(id) => {
           setRoute(id);
           if (id === "chat" && !chat.activeId) {
@@ -246,12 +344,16 @@ function App() {
           <span>Custom Taby Agent</span>
         </div>
         <div className="status-pill">
-          {route} · Stage 7 files
+          {route} · Stage 15
           {statusLine ? ` · ${statusLine}` : ""}
+          {voicePhase === "recording" ? ` · rec ${recSeconds}s` : ""}
         </div>
       </header>
 
       <main className="app-main">
+        {route === "home" && (
+          <HomeView deviceLabel={connectionLabel} />
+        )}
         {route === "chat" && (
           <section className="card">
             <h2>Chat</h2>
@@ -268,12 +370,49 @@ function App() {
               }}
               onSelect={(id) => persistChat({ ...chat, activeId: id })}
             />
-            <p className="hint" style={{ marginTop: 12 }}>
-              Tip: use the top HUD prompt — messages land in this chat.
-            </p>
+            <div
+              className={`voice-bar${voicePhase === "recording" ? " is-recording" : ""}`}
+            >
+              <button
+                type="button"
+                className="btn"
+                onClick={() => void handleVoiceClick()}
+              >
+                {voicePhase === "recording"
+                  ? "Stop & send transcript"
+                  : voicePhase === "processing"
+                    ? "Processing…"
+                    : "Voice (mock STT)"}
+              </button>
+              <span className="hint">
+                Stage 8 — mock STT; real mic path later
+              </span>
+            </div>
           </section>
         )}
-
+        {route === "tasks" && <TasksView />}
+        {route === "reminders" && <RemindersView />}
+        {route === "notes" && (
+          <NotesView
+            onAddToChat={(text) => {
+              void sendUserMessage(text, []);
+            }}
+          />
+        )}
+        {route === "focus" && (
+          <FocusView
+            onFaceLockIn={() => {
+              if (mockDevice.getConnectionState() === "connected") {
+                void mockDevice.play("lockin").catch(() =>
+                  mockDevice.play("working_loop").catch(() => undefined)
+                );
+              }
+            }}
+          />
+        )}
+        {route === "habits" && <HabitsView />}
+        {route === "today" && <TodayView />}
+        {route === "this_week" && <ThisWeekView />}
         {route === "settings" && (
           <>
             <section className="card">
@@ -316,7 +455,10 @@ function App() {
                     onChange={(e) => {
                       setSettings((s) => ({
                         ...s,
-                        hud: { ...s.hud, faceReactionsEnabled: e.target.checked },
+                        hud: {
+                          ...s.hud,
+                          faceReactionsEnabled: e.target.checked,
+                        },
                       }));
                       setSaved(false);
                     }}
@@ -327,7 +469,8 @@ function App() {
             <section className="card">
               <h2>AI settings</h2>
               <p className="hint" style={{ marginBottom: 16 }}>
-                Keys stay on this machine only (secure store). Never commit them.
+                Keys stay on this machine only (secure store). Never commit
+                them.
               </p>
               <div className="form-grid">
                 <label className="field">
@@ -375,7 +518,11 @@ function App() {
                 </label>
               </div>
               <div className="row-actions">
-                <button type="button" className="btn primary" onClick={handleSave}>
+                <button
+                  type="button"
+                  className="btn primary"
+                  onClick={handleSave}
+                >
                   Save settings
                 </button>
                 {saved && <span className="hint">Saved locally</span>}
@@ -389,7 +536,8 @@ function App() {
                   <select
                     value={settings.device.transport}
                     onChange={(e) => {
-                      const transport = e.target.value as AppSettings["device"]["transport"];
+                      const transport = e.target
+                        .value as AppSettings["device"]["transport"];
                       setSettings((s) => ({
                         ...s,
                         device: { ...s.device, transport },
@@ -405,28 +553,37 @@ function App() {
                 </label>
               </div>
               <div className="row-actions">
-                <button type="button" className="btn" onClick={handleConnectMock}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={handleConnectMock}
+                >
                   Connect mock device
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    const r = invokeTool("create_task", {
+                      title: "Smoke test task",
+                    });
+                    setStatusLine(r.message);
+                  }}
+                >
+                  Test tool: create_task
                 </button>
               </div>
               <p className="hint" style={{ marginTop: 12 }}>
-                BLE/USB real I/O is PENDING_HARDWARE. Mock records play/text/choice for CI.
+                BLE/USB real I/O is PENDING_HARDWARE. Mock records
+                play/text/choice for CI.
               </p>
             </section>
           </>
         )}
 
-        {route !== "chat" && route !== "settings" && (
-          <section className="card">
-            <h2>{route.replace("_", " ")}</h2>
-            <p className="hint">Placeholder module — content arrives in a later stage.</p>
-          </section>
-        )}
-
         <p className="footer-note">
-          Stage 7 — file attach (picker + drag-drop), chips, txt/md extract; face alts + post-done delay.
-          Nav pastels cycle by cell order (not by column). Releases use{" "}
-          <code>gh release create</code>.
+          Stages 8–15 — voice mock, tasks, reminders, notes, today/week,
+          focus, habits, home dashboard.
         </p>
       </main>
     </div>

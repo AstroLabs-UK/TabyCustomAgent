@@ -16,6 +16,7 @@ export type HudOverlayProps = {
   pendingAttachments?: ChatAttachment[];
   onFilesSelected?: (files: FileList | File[]) => void;
   onRemoveAttachment?: (id: string) => void;
+  onVoiceClick?: () => void;
 };
 
 /**
@@ -32,6 +33,7 @@ export function HudOverlay({
   pendingAttachments = [],
   onFilesSelected,
   onRemoveAttachment,
+  onVoiceClick,
 }: HudOverlayProps) {
   const [phase, setPhase] = useState<HudPhase>("hidden");
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
@@ -145,6 +147,7 @@ export function HudOverlay({
               pendingAttachments={pendingAttachments}
               onFilesSelected={onFilesSelected}
               onRemoveAttachment={onRemoveAttachment}
+              onVoiceClick={onVoiceClick}
             />
             {expanded && (
               <NavGrid

@@ -13,14 +13,14 @@ Format: `Stage N — GO — YYYY-MM-DD — optional note`
 | 4 | GO | 2026-11-08 | Chat module (stream + HUD handoff) |
 | 5 | GO | 2026-11-08 | Device facade + mock face window |
 | 6 | GO | 2026-11-08 | Face GIFs + alts + post-done delay |
-| 7 | in progress | 2026-11-08 | File upload into chat |
-| 8 | not started | | |
-| 9 | not started | | |
-| 10 | not started | | |
-| 11 | not started | | |
-| 12 | not started | | |
-| 13 | not started | | |
-| 14 | not started | | |
-| 15 | not started | | |
+| 7 | GO | 2026-11-08 | File upload (user batch → 15) |
+| 8 | ready | 2026-11-08 | Voice mock STT — await user test |
+| 9 | ready | 2026-11-08 | Tasks + tools |
+| 10 | ready | 2026-11-08 | Reminders + scheduler |
+| 11 | ready | 2026-11-08 | Notes + search |
+| 12 | ready | 2026-11-08 | Today + This week |
+| 13 | ready | 2026-11-08 | Focus timer |
+| 14 | ready | 2026-11-08 | Habits + streaks |
+| 15 | ready | 2026-11-08 | Home dashboard |
 | 16 | not started | | |
 | 17 | not started | | |

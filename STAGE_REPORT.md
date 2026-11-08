@@ -1,28 +1,28 @@
-# Stage 7 report — File upload into chat
+# Stages 8–15 report (batch for user testing)
 
-## Stage 6 GO notes (shipped with this zip)
-- AI loading: `working_loop`
-- One-shots return to idle after **clip duration + 1200ms**
-- Random alts when available (`confirmation` / `thumbs_up` / `yeah` / `task_completed`, etc.)
-- GIF restart + −90° rotation (prior)
+User requested complete through Stage 15, then test.
 
-## Stage 7 deliverables
-| Item | Status |
-|------|--------|
-| File picker on HUD prompt | Done |
-| Drag-drop on prompt | Done |
-| Chips / previews; remove | Done |
-| Size limit (5 MB default) | Done |
-| txt / md text extract | Done |
-| PDF: clear MVP limitation | Done |
-| Images: preview chip | Done |
-| Message stores attachment metadata | Done |
+## Automated results
+- Stages 0–7 prior scripts: PASS
+- Stages 8–15 combined: **17/17 PASS**
 
-## Tests
-Stage 6: PASS · Stage 7: **9/9** PASS
+## Delivered by stage
 
-## Human review
-1. Chip UI clear when attaching?
-2. Oversize / PDF errors readable?
+| Stage | Feature | Status |
+|------:|---------|--------|
+| 8 | Voice: record SM, mock STT, HUD mic, face listening | Done (mock audio) |
+| 9 | Tasks CRUD + tools `create_task` / `complete_task` | Done |
+| 10 | Reminders + tick scheduler (fake clock in tests) | Done |
+| 11 | Notes list/editor, search, add-to-chat | Done |
+| 12 | Today + This week aggregates | Done |
+| 13 | Focus presets/timer/session log + lock-in face try | Done |
+| 14 | Habits check-in + streak calc | Done |
+| 15 | Home dashboard cards + empty state | Done |
 
-Reply **GO** or **CHANGES**.
+## Nav
+Use the 2×5 grid to open: Home, Chat, Tasks, Reminders, Today, Focus, Settings, Notes, Habits, This week.
+
+## Human review (your pass)
+Walk the nav modules, try voice mock, create a task/reminder/habit, start focus, open Home.
+
+Reply **GO** (optionally per stage) or **CHANGES**.
