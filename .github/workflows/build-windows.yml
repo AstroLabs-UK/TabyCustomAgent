@@ -118,15 +118,29 @@ jobs:
           }
           Get-ChildItem release-assets | Format-Table Name, Length
 
+      - name: Release metadata
+        id: meta
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "title=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=continuous-${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "title=Continuous build ${GITHUB_REF_NAME} run ${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish GitHub Release (real Release + assets)
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
         uses: softprops/action-gh-release@v2
         with:
-          # Version tags → stable release. Branch pushes → prerelease continuous build.
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('continuous-{0}-{1}', github.ref_name, github.run_number) }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('Continuous build — {0} #{1}', github.ref_name, github.run_number) }}
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.title }}
           draft: false
-          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
           generate_release_notes: true
           fail_on_unmatched_files: false
           body: |
