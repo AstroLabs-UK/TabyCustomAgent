@@ -1,131 +1,42 @@
-# Stage 0 report — Project skeleton
+# Stage 1 report — Top HUD invoke
 
 ## Automated results
 - suite: **PASS**
-- runner: `npm run test:unit` → `node scripts/run-stage0-tests.mjs` (11/11)
+- runner: `npm run test:unit` → stage0 (11/11) + stage1 (10/10)
 - notes:
-  - Settings store: defaults + save/load (API key, base URL, dwell)
-  - MockDevice: connect, play, offline throw, choice events
-  - Mock AI stream: tokens then done
-  - BLE service UUID constant present
-  - `package-windows` / `package-linux` / `package-repo-zip` scripts OK
-  - Windows `.exe` path: `npm run tauri build` → `src-tauri/target/release/*.exe` (documented)
+  - DwellTimer with fake clock: no fire before threshold; fires at ms; leave cancels; once per hover; configurable dwell
+  - State machine: hidden → compact on dwell; dismiss / Escape / click-outside → hidden
+  - Compact prompt chrome: input, send, upload/voice placeholders, connection dot
+  - Hot zone top-center; backdrop dismiss; Esc dismiss
+  - Settings: dwell ms + always-on-top flag + hot-zone hint toggle
 
-## Deliverables checklist (Stage 0)
+## Deliverables checklist (Stage 1)
 
 | Item | Status |
 |------|--------|
-| Repo layout (Tauri 2 + React-TS) | Done |
-| App launches (Vite / Tauri shell) | Done — placeholder main window |
-| Settings form: **API key** + **API endpoint** + model + dwell ms | Done (localStorage Stage 0) |
-| Device + AI interfaces + mocks | Done |
-| Unit tests green | Done (11/11) |
-| Windows `.exe` build stub + `BUILD_WINDOWS.md` | Done |
-| Linux notes `BUILD_LINUX.md` | Done |
-| Repo zip for GitHub upload | Done → `artifacts/taby-custom-agent-stage0-2026-11-07.zip` |
-| User README (install-focused) | Done |
-| Design tokens CSS | Done |
-| Docs (requirements, roadmap, design, tokens, workflow) | In repo |
+| Hot zone geometry (top center) | Done |
+| Dwell timer (default 500 ms, configurable) | Done |
+| Compact overlay: prompt, send, upload/voice placeholders, connection dot | Done |
+| Dismiss: Escape / click outside | Done |
+| Optional always-on-top flag (settings) | Done (flag stored; native always-on-top later) |
+| Unit tests green | Done (10 Stage 1 + 11 Stage 0) |
+| Windows `.exe` CI path | Inherited from Stage 0 |
 
-## Screenshots / UI notes
-- Main window shell: header with brand mark, status pill (“Device: disconnected · Stage 0 shell”).
-- **AI settings** card: provider select, API endpoint (base URL), API key (password field), model, HUD dwell ms.
-- Actions: Save settings · Test mock AI · Connect mock device.
-- Dashed **overlay host** placeholder for Stage 1 HUD.
-- Colours from `DESIGN_TOKENS.md` / `design.md` (accent `#E98F78`, soft surfaces, Inter/system stack).
+## Screenshots / UI notes (for human review)
 
-## Hardware
-- N/A (mocks only)
+Main window still hosts settings + mocks. HUD is a **fixed top-center hot zone** (subtle peach hint when enabled). After dwell, a centered compact bar appears with:
 
-## Artifact
-- Full git repo zip: `artifacts/taby-custom-agent-stage0-2026-11-07.zip` (no secrets, no `node_modules`)
+- Green/grey connection dot  
+- “Ask anything…” input  
+- File + voice icon buttons (placeholders)  
+- Accent **Send** pill (`#E98F78`)
 
-## Ask user
-1. Does the empty shell window look acceptable as a starting point? (settings form clarity, spacing, accent treatment)
-2. Any visual tweaks before we lock Stage 0?
-3. Reply **GO** to start Stage 1 (top-center hover HUD), or list **CHANGES**.
+Backdrop soft dim; Esc or outside click closes.
 
----
+## Human review questions only
 
-## Post-Stage-0 patch (CI only — not Stage 1)
+1. Hold mouse at top center — does **timing** feel close enough to official (default 500 ms)?  
+2. Is the **bar centered** and comfortable under the camera / top edge area?  
+3. Any visual tweaks to density, radius, or hint strip before we lock Stage 1?
 
-Added GitHub Actions workflow so **every push** builds a Windows `.exe`:
-
-- `.github/workflows/build-windows.yml`
-- Triggers: push (all branches), pull_request, workflow_dispatch
-- Artifact name: `taby-custom-agent-windows-exe`
-- Docs updated: `BUILD_WINDOWS.md`, `README.md`
-
-No Stage 1 UI work. Stage 0 remains awaiting visual GO / CHANGES.
-
-## Patch — Releases + installer + git identity
-
-- `.git/config` fixed to AstroLabs / https://github.com/AstroLabs-UK/TabyCustomAgent
-- `tauri.conf.json`: NSIS + MSI targets; WebView2 `downloadBootstrapper` (silent) so installer brings in runtime deps
-- `build-windows.yml`: on push to main/master or tag `v*`, publishes GitHub Release with assets + install tutorial in body
-- Docs updated (BUILD_WINDOWS.md, README.md)
-
-Still Stage 0 — no Stage 1 UI.
-
-
-## Patch — package-lock.json for CI
-
-- Added root `package-lock.json` so `actions/setup-node` `cache: npm` and `npm ci` succeed on Windows runners.
-- Fixes failed **Setup Node.js** step on GitHub Actions.
-
-## Patch — Windows CI: resolve Tauri CLI
-
-- Workflow now runs `npm run tauri:build` (not `npm run tauri build`).
-- `tauri:build` / `tauri:dev` scripts use `npx --no-install tauri …` so the local `@tauri-apps/cli` is found on Windows runners.
-
-## Patch — invoke Tauri CLI via node path
-
-- `npx --no-install tauri` fails on Windows because the package is `@tauri-apps/cli`, not `tauri`.
-- Scripts now call `node ./node_modules/@tauri-apps/cli/tauri.js …` (works on Windows + Linux).
-- Workflow verifies `tauri.js` exists after `npm ci` before building.
-
-## Patch — ensure @tauri-apps/cli installs on GHA
-
-Root cause: GitHub-hosted runners often set `NODE_ENV=production`, so `npm ci` **skips devDependencies**. `@tauri-apps/cli` lived there → missing `tauri.js`.
-
-Fixes:
-- Moved `@tauri-apps/cli` to **dependencies** (needed for CI build).
-- Workflow uses `npm ci --include=dev` with `NODE_ENV=development` for install.
-- Verify step lists `@tauri-apps/*` packages for easier debugging.
-
-## Patch — official tauri-action + resilient CLI runner
-
-CI still could not find `node_modules/@tauri-apps/cli/tauri.js` even though the
-`cli` folder was present (Windows install layout / bin issue).
-
-Changes:
-- Workflow uses **`tauri-apps/tauri-action@v0`** (installs/invokes CLI correctly).
-- Local scripts use **`scripts/run-tauri.mjs`** which resolves the CLI via
-  `require.resolve`, relative paths, `.bin` shim, then `npm exec` fallback.
-- Fail-fast **`npm run build`** (Vite only) before Tauri bundling.
-- Release gating via a small bash step (main/master/tags only).
-- Anticipated follow-on issues addressed: NODE_ENV/devDeps, CLI path, release body.
-
-## Patch — explicit node paths for vite/tsc (Windows PATH)
-
-Same class of failure as Tauri CLI: `vite` not on PATH under `npm run` on
-Windows runners.
-
-- `build` / `dev` / `preview` → `node ./node_modules/vite/bin/vite.js …`
-- `typecheck` → `node ./node_modules/typescript/bin/tsc --noEmit`
-- Moved `vite`, `@vitejs/plugin-react`, `typescript` into **dependencies**
-- Workflow verifies `node_modules/vite/bin/vite.js` exists before build
-
-## Patch — lockfile used internal npm proxy (broke GHA installs)
-
-Root cause: `package-lock.json` had `resolved` URLs pointing at
-`http://35.245.43.102/npm/...` (sandbox mirror). GitHub Actions cannot reach
-that host, so packages like `vite` / `typescript` failed to install while some
-others (already on registry.npmjs.org) succeeded — matching the symptom
-`@tauri-apps/cli` present, `vite` missing.
-
-Fixes:
-- Regenerated `package-lock.json` against **https://registry.npmjs.org/**
-- Added `.npmrc` pinning the public registry
-- Workflow: `npm_config_registry` set; if vite/tsc still missing after `npm ci`,
-  runs `npm install` fallback and re-checks
+Reply **GO** or list **CHANGES**.

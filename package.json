@@ -11,14 +11,15 @@
     "tauri": "node scripts/run-tauri.mjs",
     "tauri:dev": "node scripts/run-tauri.mjs dev",
     "tauri:build": "node scripts/run-tauri.mjs build",
-    "test": "node scripts/run-stage0-tests.mjs && (node ./node_modules/vitest/vitest.mjs run || true)",
+    "test": "node scripts/run-stage0-tests.mjs && node scripts/run-stage1-tests.mjs",
     "test:watch": "node ./node_modules/vitest/vitest.mjs",
     "package-windows": "node scripts/package-windows.mjs",
     "package-linux": "node scripts/package-linux.mjs",
     "package-repo-zip": "node scripts/package-repo-zip.mjs",
     "check": "node ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/vitest/vitest.mjs run",
-    "test:unit": "node scripts/run-stage0-tests.mjs",
-    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit"
+    "test:unit": "node scripts/run-stage0-tests.mjs && node scripts/run-stage1-tests.mjs",
+    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
+    "test:stage1": "node scripts/run-stage1-tests.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

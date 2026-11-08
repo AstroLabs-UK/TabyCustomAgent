@@ -4,7 +4,7 @@ A **local-first desktop companion** inspired by Hey Taby. Chat with **your** AI 
 
 ## What you get
 
-- Top-center hover HUD (prompt, file/voice affordances as stages land)
+- Top-center hover HUD (Stage 1: dwell + compact prompt; file/voice affordances as stages land)
 - Expandable **2×5** navigation (Chat, Home, Tasks, Reminders, Today, Focus, Settings, Notes, Habits, This week)
 - Your API key & base URL in Settings — keys stay on your machine
 - Physical face animations when a device is paired (stock firmware)

@@ -198,3 +198,195 @@ select:focus {
   color: var(--color-text-muted);
   line-height: 1.5;
 }
+
+/* ─── Stage 1: Top HUD ───────────────────────────────────────── */
+
+.hud-hotzone {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, 70vw);
+  height: 14px;
+  z-index: 9000;
+  cursor: default;
+  /* invisible hit target; slightly taller for usability */
+  background: transparent;
+}
+
+.hud-hotzone--hint {
+  background: linear-gradient(
+    180deg,
+    rgba(233, 143, 120, 0.35) 0%,
+    rgba(233, 143, 120, 0.05) 100%
+  );
+  border-radius: 0 0 10px 10px;
+}
+
+.hud-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9001;
+  background: rgba(23, 23, 23, 0.12);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12px;
+  animation: hud-fade-in 180ms ease-out;
+}
+
+.hud-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: min(560px, calc(100vw - 32px));
+}
+
+.hud-compact {
+  width: 100%;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-hud);
+  padding: 10px 12px;
+  animation: hud-slide-in 200ms ease-out;
+}
+
+.hud-compact-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-border);
+}
+
+.hud-connection-dot.ok {
+  background: #5bb98c;
+  box-shadow: 0 0 0 3px rgba(91, 185, 140, 0.2);
+}
+
+.hud-connection-dot.off {
+  background: #c4c4c0;
+}
+
+.hud-prompt-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 450;
+  color: var(--color-text);
+  padding: 8px 4px;
+}
+
+.hud-prompt-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.hud-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.hud-icon-btn:hover {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+}
+
+.hud-send-btn {
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--color-accent-strong);
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.hud-send-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.hud-send-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+.hud-last-prompt {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border-radius: 999px;
+  padding: 4px 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes hud-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes hud-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-backdrop,
+  .hud-compact {
+    animation: none;
+  }
+}
+
+.checkbox-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-field input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-accent-strong);
+}
+
+kbd {
+  font-family: var(--font-sans);
+  font-size: 0.8em;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
