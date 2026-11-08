@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "description": "Conversation state → Physical Taby stock animation IDs",
+  "states": {
+    "listening": "listening",
+    "busy": "thinking",
+    "done": "confirmation",
+    "error": "error",
+    "idle": "idle"
+  },
+  "knownAnimationIds": [
+    "listening",
+    "thinking",
+    "confirmation",
+    "error",
+    "idle",
+    "happy",
+    "sad",
+    "wave"
+  ]
+}

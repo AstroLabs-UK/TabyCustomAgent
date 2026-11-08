@@ -7,7 +7,7 @@ import {
   saveSettings,
   type AppSettings,
 } from "./settings";
-import { mockDevice } from "./device";
+import { mockDevice, ChatDeviceOrchestrator, getDevice } from "./device";
 import { completeStream, aiStatusLabel, aiStatusOk } from "./ai";
 import { HudOverlay } from "./hud";
 import type { NavCellId } from "./hud";
@@ -107,6 +107,16 @@ function App() {
 
       setStreaming(true);
       setStatusLine("Thinking…");
+      const device = getDevice(settings.device.transport);
+      const orch = new ChatDeviceOrchestrator(device);
+      try {
+        if (device.getConnectionState() !== "connected" && settings.device.transport === "mock") {
+          await mockDevice.connect();
+          setDeviceState(mockDevice.getConnectionState());
+        }
+      } catch { /* offline ok */ }
+      await orch.onUserListening();
+      await orch.onAssistantBusy();
       conv = appendMessage(conv, "assistant", "");
       conversations = conversations.map((c) => (c.id === conv.id ? conv : c));
       persistChat({ conversations, activeId: conv.id });
@@ -142,15 +152,21 @@ function App() {
             );
             persistChat({ conversations, activeId: conv.id });
             setStatusLine(chunk.error ?? "error");
-            break;
+            await orch.onTurnError(chunk.error);
+            return;
           }
         }
+        await orch.onTurnDone();
         setStatusLine("");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await orch.onTurnError(msg);
+        setStatusLine(msg);
       } finally {
         setStreaming(false);
       }
     },
-    [activeConv, chat.conversations, persistChat, settings.ai, streaming]
+    [activeConv, chat.conversations, persistChat, settings.ai, settings.device.transport, streaming]
   );
 
   const deviceOk = deviceState === "connected";
@@ -188,7 +204,7 @@ function App() {
           <span>Custom Taby Agent</span>
         </div>
         <div className="status-pill">
-          {route} · Stage 4 chat
+          {route} · Stage 5 device
           {statusLine ? ` · ${statusLine}` : ""}
         </div>
       </header>
@@ -311,11 +327,35 @@ function App() {
             </section>
             <section className="card">
               <h2>Device</h2>
+              <div className="form-grid">
+                <label className="field">
+                  <span>Transport</span>
+                  <select
+                    value={settings.device.transport}
+                    onChange={(e) => {
+                      const transport = e.target.value as AppSettings["device"]["transport"];
+                      setSettings((s) => ({
+                        ...s,
+                        device: { ...s.device, transport },
+                      }));
+                      setSaved(false);
+                    }}
+                  >
+                    <option value="mock">Mock (simulator)</option>
+                    <option value="ble">BLE (hardware)</option>
+                    <option value="usb">USB (stub)</option>
+                    <option value="wifi">Wi-Fi (later)</option>
+                  </select>
+                </label>
+              </div>
               <div className="row-actions">
                 <button type="button" className="btn" onClick={handleConnectMock}>
                   Connect mock device
                 </button>
               </div>
+              <p className="hint" style={{ marginTop: 12 }}>
+                BLE/USB real I/O is PENDING_HARDWARE. Mock records play/text/choice for CI.
+              </p>
             </section>
           </>
         )}
@@ -328,7 +368,7 @@ function App() {
         )}
 
         <p className="footer-note">
-          Stage 4 — chat with streaming, local history, HUD → chat handoff.
+          Stage 5 — device facade, animation map, chat→face orchestrator (listening → busy → done).
           Nav pastels cycle by cell order (not by column). Releases use{" "}
           <code>gh release create</code>.
         </p>

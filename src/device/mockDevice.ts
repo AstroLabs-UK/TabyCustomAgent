@@ -4,12 +4,23 @@ import type {
   DeviceFacade,
   DeviceTransport,
 } from "./types";
+import {
+  DEFAULT_ANIMATION_MAP,
+  validateAnimationId,
+  type AnimationMap,
+} from "./animationMap";
 
 export class MockDevice implements DeviceFacade {
   readonly transport: DeviceTransport = "mock";
   private state: DeviceConnectionState = "disconnected";
   private handlers = new Set<(ev: DeviceEvent) => void>();
   readonly commandLog: string[] = [];
+  readonly warnings: string[] = [];
+  private animationMap: AnimationMap = DEFAULT_ANIMATION_MAP;
+
+  setAnimationMap(map: AnimationMap): void {
+    this.animationMap = map;
+  }
 
   getConnectionState(): DeviceConnectionState {
     return this.state;
@@ -25,10 +36,18 @@ export class MockDevice implements DeviceFacade {
   async disconnect(): Promise<void> {
     this.state = "disconnected";
     this.commandLog.length = 0;
+    this.warnings.length = 0;
   }
 
   async play(animationId: string): Promise<void> {
     this.ensureConnected();
+    const check = validateAnimationId(this.animationMap, animationId);
+    if (!check.ok) {
+      this.warnings.push(check.reason);
+      this.commandLog.push(`play:UNSUPPORTED:${animationId}`);
+      this.emit({ type: "err", payload: check.reason });
+      return;
+    }
     this.commandLog.push(`play:${animationId}`);
     this.emit({ type: "ok", payload: "OK" });
   }
@@ -59,13 +78,14 @@ export class MockDevice implements DeviceFacade {
     return () => this.handlers.delete(handler);
   }
 
-  simulateChoice(index: 0 | 1): void {
-    this.emit({ type: "choice", choiceIndex: index, payload: String(index) });
+  /** Test helper: simulate user choice on device */
+  simulateChoice(index: number): void {
+    this.emit({ type: "choice", choiceIndex: index });
   }
 
   private ensureConnected(): void {
     if (this.state !== "connected") {
-      throw new Error("MockDevice: not connected");
+      throw new Error("device not connected");
     }
   }
 

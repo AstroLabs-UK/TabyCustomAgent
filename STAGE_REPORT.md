@@ -1,39 +1,34 @@
-# Stage 4 report — Chat module
+# Stage 5 report — Device facade + simulators
 
 ## Automated results
-- suite: **PASS** (stages 0–4)
-- Stage 2 updated: pastels cycle by **cell index % 5** (not column-paired)
-- Nav labels: darker `#141414` + light text-shadow for contrast on pastels
-- Stage 4: persist/reload, stream assembler, markdown, HUD→chat shape
+- suite: **PASS**
+- Stage 5: **11/11**
+- notes:
+  - `DeviceFacade` + `MockDevice` (command log, choice events, unsupported IDs)
+  - `BleDeviceClient` / `UsbDeviceClient` stubs (`PENDING_HARDWARE`)
+  - Animation map load/validate (`configs/animation-map.json` + TS default)
+  - `ChatDeviceOrchestrator`: listening → busy → done; offline skips without throw
+  - Chat send path drives orchestrator when mock connected
 
-## Nav colour rule (your CHANGES)
-Row-major order across 10 cells:
-1–5: blue, pink, peach, green, lavender  
-6–10: blue, pink, peach, green, lavender (repeat)  
-So **Chat ≠ Home** colour (no longer same colour per row/column pair).
-
-## CI Releases (again)
-Publish step is **PowerShell + `gh release create`** only (no softprops):
-- Stages assets under `release-assets/`
-- Deletes prior same tag if present
-- `gh release create … --target $GITHUB_SHA`
-- Verifies `gh release view` URL contains `/releases/`
-
-If Tags still fill without Releases, the previous run likely never reached this step (build failed earlier) or an old workflow file was still on `main`.
-
-## Deliverables (Stage 4)
+## Deliverables
 
 | Item | Status |
 |------|--------|
-| Conversation list + messages UI | Done |
-| Streaming tokens render | Done |
-| History persisted locally | Done |
-| HUD prompt → active/new chat | Done |
-| Basic markdown | Done |
-| Unit tests | Done |
+| DeviceFacade interface | Done |
+| MockDevice | Done |
+| BLE client (incomplete until HW) | Done (stub, PENDING_HARDWARE) |
+| USB client stub | Done |
+| Animation map JSON + validate IDs | Done |
+| Orchestrator listening→busy→done | Done |
 
 ## Human review
-1. Chat layout and streaming feel OK?
-2. HUD → chat handoff clear?
+- None required without hardware
+- Optional: paste mock command log after a chat turn
+
+## Hardware
+- `PENDING_HARDWARE` for real BLE `play confirmation`
+
+## Exit
+Software GO when you approve. Hardware may stay pending.
 
 Reply **GO** or **CHANGES**.

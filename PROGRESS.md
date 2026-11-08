@@ -10,8 +10,8 @@ Format: `Stage N — GO — YYYY-MM-DD — optional note`
 | 1 | GO | 2026-11-08 | Top HUD invoke (dwell + compact prompt) |
 | 2 | GO | 2026-11-08 | Expanded 2×5 navigation (layout frozen) |
 | 3 | GO | 2026-11-08 | Settings + AI key path |
-| 4 | in progress | 2026-11-08 | Chat module |
-| 5 | not started | | |
+| 4 | GO | 2026-11-08 | Chat module (stream + HUD handoff) |
+| 5 | in progress | 2026-11-08 | Device facade + simulators |
 | 6 | not started | | |
 | 7 | not started | | |
 | 8 | not started | | |
