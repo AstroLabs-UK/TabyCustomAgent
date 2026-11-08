@@ -780,6 +780,10 @@ kbd {
   }
 }
 
+
+
+
+
 .face-gif-frame {
   width: 220px;
   height: 280px;
@@ -791,13 +795,21 @@ kbd {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  position: relative;
 }
 
+/* Upstream GIFs are portrait for the device; rotate 90° left for desk preview */
 .face-gif {
-  width: 100%;
-  height: 100%;
+  width: auto;
+  height: auto;
+  max-width: 260px;
+  max-height: 260px;
   object-fit: contain;
+  transform: rotate(-90deg);
+  transform-origin: center center;
   image-rendering: auto;
+  user-select: none;
+  pointer-events: none;
 }
 
 .face-gif-missing {

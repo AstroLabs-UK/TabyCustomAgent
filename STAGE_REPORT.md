@@ -1,21 +1,23 @@
-# Stage 6 report — Face reactions + official GIFs (map fix)
+# Stage 6 report — CHANGES applied (not GO yet)
 
-## Animation mapping (fixed)
-| State | Animation ID | Notes |
-|-------|--------------|-------|
-| Listening | `listening_loop` | OK |
-| AI thinking / busy | **`busy_loop`** | Thinking energy — **not** `working_loop` |
-| Done | `confirmation` | OK |
-| Error | `disappointed` | OK |
-| Idle | `idle_01_loop` | OK |
+## Your notes addressed
+1. **AI loading** → `working_loop` (`ff09215b.gif`)
+2. **GIF restart** — each `play()` cache-busts + remounts `<img>` so the clip starts from frame 0
+3. **Return to idle** — one-shots (`confirmation`, `disappointed`, …) schedule `idle_01_loop` after clip duration
+4. **Orientation** — face GIFs use `transform: rotate(-90deg)` (90° left)
 
-`working_loop` is reserved for when **you** are in a work/focus context, not for AI processing.
+## Mapping
+| State | ID |
+|-------|-----|
+| Listening | `listening_loop` |
+| AI loading | `working_loop` |
+| Done | `confirmation` → then `idle_01_loop` |
+| Error | `disappointed` → then `idle_01_loop` |
+| Idle | `idle_01_loop` |
 
-## Policy
-- Face window opens **only** on **Connect mock device**
-- Face reactions toggle in Settings
+## Review
+- Loading = working_loop?
+- After done, returns to idle without a hard freeze?
+- Rotation look correct (90° left)?
 
-## Tests
-Stage 6: PASS (including busy ≠ working_loop)
-
-Reply **GO** for Stage 7, or **CHANGES**.
+Reply **GO** or **CHANGES**.
