@@ -1,33 +1,39 @@
-# Stage 3 report — Settings + AI key path
+# Stage 4 report — Chat module
 
 ## Automated results
-- suite: **PASS** (stages 0–3 unit runners)
-- notes:
-  - Live config validation: empty key/url rejected in non-mock mode
-  - Mock stream still returns fixed token chunks + done
-  - API key stored in dedicated secure blob; public settings JSON strips key
-  - `assertNoKeyInText` guards against accidental key logging
-  - `completeStream` routes mock vs Groq/OpenAI-compatible HTTP SSE client
+- suite: **PASS** (stages 0–4)
+- Stage 2 updated: pastels cycle by **cell index % 5** (not column-paired)
+- Nav labels: darker `#141414` + light text-shadow for contrast on pastels
+- Stage 4: persist/reload, stream assembler, markdown, HUD→chat shape
 
-## CI — Releases page (not Tags-only)
-- Publish step uses **`gh release create`** (GitHub CLI)
-- Explicit `--target $GITHUB_SHA`, notes file, asset upload
-- Verifies with `gh release view` JSON after create
-- Deletes prior same-tag release before republish
-- Why Tags-only happened: creating a git tag without a successful **Release** API
-  object leaves entries on **Tags**; `gh release create` always creates a Release
+## Nav colour rule (your CHANGES)
+Row-major order across 10 cells:
+1–5: blue, pink, peach, green, lavender  
+6–10: blue, pink, peach, green, lavender (repeat)  
+So **Chat ≠ Home** colour (no longer same colour per row/column pair).
 
-## Deliverables checklist (Stage 3)
+## CI Releases (again)
+Publish step is **PowerShell + `gh release create`** only (no softprops):
+- Stages assets under `release-assets/`
+- Deletes prior same tag if present
+- `gh release create … --target $GITHUB_SHA`
+- Verifies `gh release view` URL contains `/releases/`
+
+If Tags still fill without Releases, the previous run likely never reached this step (build failed earlier) or an old workflow file was still on `main`.
+
+## Deliverables (Stage 4)
 
 | Item | Status |
 |------|--------|
-| Settings form: key, model, base URL, dwell, transport | Done (existing + secure key) |
-| Secure storage for API key | Done (`secureStore` localStorage façade) |
-| AI client: mock + live Groq/OpenAI-compatible | Done |
-| Connection status string in HUD | Done (device + AI label) |
-| Tests: key not logged, mock stream, live validation | Done |
+| Conversation list + messages UI | Done |
+| Streaming tokens render | Done |
+| History persisted locally | Done |
+| HUD prompt → active/new chat | Done |
+| Basic markdown | Done |
+| Unit tests | Done |
 
 ## Human review
-- Settings page readability only
+1. Chat layout and streaming feel OK?
+2. HUD → chat handoff clear?
 
-Reply **GO** or list **CHANGES**.
+Reply **GO** or **CHANGES**.

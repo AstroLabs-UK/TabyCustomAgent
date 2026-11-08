@@ -1,9 +1,3 @@
-# Build Windows installer (NSIS + MSI). On push to main/master or v* tags,
-# publish a real GitHub *Release* (not tag-only) with install tutorial + assets.
-#
-# Uses tauri-apps/tauri-action for the build only, then softprops/action-gh-release
-# so continuous builds become proper Releases with downloadable assets.
-
 name: Build Windows EXE
 
 on:
@@ -49,29 +43,22 @@ jobs:
           NODE_ENV: development
           npm_config_registry: https://registry.npmjs.org/
 
-      - name: Verify frontend toolchain (reinstall if needed)
+      - name: Verify frontend toolchain
         shell: pwsh
         run: |
-          if (-not (Test-Path "node_modules/vite/bin/vite.js") -or -not (Test-Path "node_modules/typescript/bin/tsc")) {
-            Write-Host "Toolchain incomplete after npm ci — running npm install fallback"
+          if (-not (Test-Path "node_modules/vite/bin/vite.js")) {
             npm install --include=dev --registry=https://registry.npmjs.org/
           }
           if (-not (Test-Path "node_modules/vite/bin/vite.js")) {
-            Write-Error "vite still missing after npm install"
+            Write-Error "vite missing"
             exit 1
           }
-          node ./node_modules/vite/bin/vite.js --version
         env:
           NODE_ENV: development
-          npm_config_registry: https://registry.npmjs.org/
 
-      - name: Vite production build (fail fast)
+      - name: Vite production build
         run: npm run build
-        env:
-          npm_config_registry: https://registry.npmjs.org/
 
-      # Build only — do NOT let tauri-action create tags/releases (that path
-      # was producing tag-only artifacts without a real Release).
       - name: Build Tauri app (Windows NSIS + MSI)
         uses: tauri-apps/tauri-action@v0
         env:
@@ -80,12 +67,8 @@ jobs:
           projectPath: .
           tauriScript: node scripts/run-tauri.mjs
           args: --bundles nsis,msi
-          # Explicitly no release from this action:
-          releaseDraft: false
-          tagName: ""
-          releaseName: ""
 
-      - name: Upload Windows build artifacts (CI)
+      - name: Upload CI artifacts
         uses: actions/upload-artifact@v4
         with:
           name: taby-custom-agent-windows-exe
@@ -97,108 +80,92 @@ jobs:
           retention-days: 14
 
       - name: Stage release assets
+        id: assets
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release-assets | Out-Null
-          $paths = @(
+          $patterns = @(
             "src-tauri/target/release/bundle/nsis/*.exe",
             "src-tauri/target/release/bundle/msi/*.msi",
             "src-tauri/target/release/taby-custom-agent.exe"
           )
-          foreach ($p in $paths) {
-            Get-ChildItem -Path $p -ErrorAction SilentlyContinue | ForEach-Object {
-              Copy-Item $_.FullName -Destination "release-assets/" -Force
-              Write-Host "Staged: $($_.Name)"
+          foreach ($pat in $patterns) {
+            Get-ChildItem -Path $pat -ErrorAction SilentlyContinue | ForEach-Object {
+              Copy-Item $_.FullName "release-assets/$($_.Name)" -Force
+              Write-Host "Staged $($_.Name)"
             }
           }
-          if (-not (Get-ChildItem release-assets -ErrorAction SilentlyContinue)) {
-            Write-Error "No release assets found under src-tauri/target/release"
-            Get-ChildItem -Path "src-tauri/target/release" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 40 FullName
+          $count = (Get-ChildItem release-assets -File -ErrorAction SilentlyContinue | Measure-Object).Count
+          if ($count -lt 1) {
+            Write-Error "No release assets staged"
             exit 1
           }
-          Get-ChildItem release-assets | Format-Table Name, Length
+          "count=$count" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      # Create a real GitHub *Release* (Releases page), not a bare tag (Tags page).
-      # Uses GitHub CLI: https://cli.github.com/manual/gh_release_create
-      - name: Publish GitHub Release
+      - name: Create GitHub Release (Releases page)
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
-        shell: bash
+        shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -euo pipefail
+          $ErrorActionPreference = "Stop"
 
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            TAG="${GITHUB_REF_NAME}"
-            TITLE="${GITHUB_REF_NAME}"
-            PRE_FLAG=()
-          else
-            # Unique tag per run; still creates a Release entry under /releases
-            TAG="continuous-${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}"
-            TITLE="Continuous build ${GITHUB_REF_NAME} #${GITHUB_RUN_NUMBER}"
-            PRE_FLAG=(--prerelease)
-          fi
+          if ($env:GITHUB_REF -like "refs/tags/v*") {
+            $tag = $env:GITHUB_REF_NAME
+            $title = $env:GITHUB_REF_NAME
+            $preArgs = @()
+          } else {
+            $tag = "continuous-$($env:GITHUB_REF_NAME)-$($env:GITHUB_RUN_NUMBER)"
+            $title = "Continuous build $($env:GITHUB_REF_NAME) #$($env:GITHUB_RUN_NUMBER)"
+            $preArgs = @("--prerelease")
+          }
 
-          NOTES_FILE="$(mktemp)"
-          cat > "$NOTES_FILE" <<'NOTES'
+          $notes = @"
           ## Custom Taby Agent — Windows build
 
-          This is a **GitHub Release** on the **Releases** page (with assets), not a tag-only entry.
+          Published on the **Releases** page with downloadable installer assets.
 
-          The **NSIS setup `.exe`** installs the app **and** required runtime dependencies
-          (Microsoft Edge WebView2 via silent bootstrapper when missing).
+          ### Install
 
-          ### Install (Windows)
+          1. Download the NSIS **setup .exe** from Assets.
+          2. Run it (WebView2 bootstrapper included when needed).
+          3. Open **Settings** and paste your API key + endpoint.
+          4. Optional BLE: close official Hey Taby first.
 
-          1. Download **`Custom Taby Agent_*_x64-setup.exe`** (NSIS) from **Assets** below.
-          2. Run the installer (allow WebView2 bootstrap if prompted/needed).
-          3. Launch **Custom Taby Agent**.
-          4. **Settings** → paste your **API key** and confirm the **API endpoint**
-             (Groq: `https://api.groq.com/openai/v1`).
-          5. Optional BLE: close the official Hey Taby app before pairing.
+          SHA: $($env:GITHUB_SHA)
+          Run: $($env:GITHUB_RUN_NUMBER)
+          "@
 
-          ### Other assets
+          $notesFile = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          Set-Content -Path $notesFile -Value $notes -Encoding utf8
 
-          - **MSI** — silent / enterprise deploy
-          - **Portable `.exe`** — no installer (WebView2 must already be present)
+          # Remove prior release+tag if present so we always land a Release object
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Deleting existing release $tag"
+            gh release delete $tag --yes --cleanup-tag
+          }
 
-          ### Notes
+          $files = @(Get-ChildItem -Path "release-assets" -File | ForEach-Object { $_.FullName })
+          if ($files.Count -lt 1) { throw "No files to attach" }
+          Write-Host "Creating release $tag with $($files.Count) assets"
+          $files | ForEach-Object { Write-Host "  $_" }
 
-          - No API keys are bundled.
-          - Unsigned continuous builds are expected for v1.
-          - Repo: https://github.com/AstroLabs-UK/TabyCustomAgent
-          NOTES
+          # Critical: gh release create publishes to Releases API (not tag-only)
+          gh release create $tag @files `
+            --title $title `
+            --notes-file $notesFile `
+            --target $env:GITHUB_SHA `
+            @preArgs
 
-          # Append build identity (expanded by bash, not heredoc-quoted)
-          {
-            echo ""
-            echo "---"
-            echo "*SHA \`${GITHUB_SHA}\` · run \`${GITHUB_RUN_NUMBER}\`*"
-          } >> "$NOTES_FILE"
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
 
-          # Collect asset files (must be non-empty)
-          mapfile -t ASSETS < <(find release-assets -type f | sort)
-          if [[ ${#ASSETS[@]} -eq 0 ]]; then
-            echo "No files in release-assets/" >&2
-            exit 1
-          fi
-          echo "Assets to upload:"
-          printf '  %s\n' "${ASSETS[@]}"
-
-          # If a release for this tag already exists, delete it so we republish cleanly
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Deleting existing release $TAG to republish..."
-            gh release delete "$TAG" --yes --cleanup-tag || true
-          fi
-
-          # Create the Release on the Releases page, targeting this commit
-          gh release create "$TAG" "${ASSETS[@]}" \
-            --title "$TITLE" \
-            --notes-file "$NOTES_FILE" \
-            --target "${GITHUB_SHA}" \
-            "${PRE_FLAG[@]}"
-
-          echo "Verifying release exists on Releases API..."
-          gh release view "$TAG" --json url,isDraft,isPrerelease,tagName,assets \
-            --jq '{url,isDraft,isPrerelease,tagName,assetCount:(.assets|length)}'
+          # Prove it is a Release (has html_url on releases API)
+          $json = gh release view $tag --json url,tagName,isDraft,isPrerelease,assets
+          Write-Host $json
+          $obj = $json | ConvertFrom-Json
+          if (-not $obj.url) { throw "Release has no url — not on Releases page" }
+          if ($obj.url -notmatch "/releases/") { throw "Unexpected release URL: $($obj.url)" }
+          Write-Host "OK Release URL: $($obj.url)"

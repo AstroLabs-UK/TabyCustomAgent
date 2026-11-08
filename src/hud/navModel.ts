@@ -1,6 +1,7 @@
 /**
- * Stage 2 — frozen 2×5 navigation model.
- * Row pastel tokens match DESIGN_TOKENS.md (peach on row 3, no yellow).
+ * Stage 2 nav model — 2×5 labels frozen.
+ * Pastels: five tokens applied in **row-major cell order**, then repeated
+ * (index % 5). Not paired by column/row-same-color.
  */
 
 export type NavCellId =
@@ -18,31 +19,18 @@ export type NavCellId =
 export type NavCell = {
   id: NavCellId;
   label: string;
-  row: number; // 0–4
-  col: number; // 0–1
-  /** CSS variable name for row pastel */
+  row: number;
+  col: number;
+  /** 0–9 row-major index */
+  index: number;
   pastelVar: string;
-  /** Hex for tests / non-CSS consumers */
   pastelHex: string;
 };
-
-/** Exactly 5 rows × 2 cols, row-major order as specified. */
-export const NAV_GRID: readonly NavCell[] = [
-  { id: "chat", label: "Chat", row: 0, col: 0, pastelVar: "--pastel-row-1", pastelHex: "#DCE6F5" },
-  { id: "home", label: "Home", row: 0, col: 1, pastelVar: "--pastel-row-1", pastelHex: "#DCE6F5" },
-  { id: "tasks", label: "Tasks", row: 1, col: 0, pastelVar: "--pastel-row-2", pastelHex: "#FCE4EC" },
-  { id: "reminders", label: "Reminders", row: 1, col: 1, pastelVar: "--pastel-row-2", pastelHex: "#FCE4EC" },
-  { id: "today", label: "Today", row: 2, col: 0, pastelVar: "--pastel-row-3", pastelHex: "#FFE9DB" },
-  { id: "focus", label: "Focus", row: 2, col: 1, pastelVar: "--pastel-row-3", pastelHex: "#FFE9DB" },
-  { id: "settings", label: "Settings", row: 3, col: 0, pastelVar: "--pastel-row-4", pastelHex: "#E8F2EC" },
-  { id: "notes", label: "Notes", row: 3, col: 1, pastelVar: "--pastel-row-4", pastelHex: "#E8F2EC" },
-  { id: "habits", label: "Habits", row: 4, col: 0, pastelVar: "--pastel-row-5", pastelHex: "#EDE7F6" },
-  { id: "this_week", label: "This week", row: 4, col: 1, pastelVar: "--pastel-row-5", pastelHex: "#EDE7F6" },
-] as const;
 
 export const NAV_ROWS = 5;
 export const NAV_COLS = 2;
 
+/** Five pastel tokens in order (DESIGN_TOKENS.md). */
 export const ROW_PASTELS = [
   { token: "--pastel-row-1", hex: "#DCE6F5", name: "blue" },
   { token: "--pastel-row-2", hex: "#FCE4EC", name: "pink" },
@@ -50,6 +38,39 @@ export const ROW_PASTELS = [
   { token: "--pastel-row-4", hex: "#E8F2EC", name: "green" },
   { token: "--pastel-row-5", hex: "#EDE7F6", name: "lavender" },
 ] as const;
+
+const LABELS: { id: NavCellId; label: string }[] = [
+  { id: "chat", label: "Chat" },
+  { id: "home", label: "Home" },
+  { id: "tasks", label: "Tasks" },
+  { id: "reminders", label: "Reminders" },
+  { id: "today", label: "Today" },
+  { id: "focus", label: "Focus" },
+  { id: "settings", label: "Settings" },
+  { id: "notes", label: "Notes" },
+  { id: "habits", label: "Habits" },
+  { id: "this_week", label: "This week" },
+];
+
+function pastelForIndex(index: number) {
+  return ROW_PASTELS[index % ROW_PASTELS.length];
+}
+
+/** Exactly 10 cells, row-major; pastel = index % 5. */
+export const NAV_GRID: readonly NavCell[] = LABELS.map((item, index) => {
+  const row = Math.floor(index / NAV_COLS);
+  const col = index % NAV_COLS;
+  const p = pastelForIndex(index);
+  return {
+    id: item.id,
+    label: item.label,
+    row,
+    col,
+    index,
+    pastelVar: p.token,
+    pastelHex: p.hex,
+  };
+});
 
 export function cellAt(row: number, col: number): NavCell | undefined {
   return NAV_GRID.find((c) => c.row === row && c.col === col);
@@ -59,7 +80,6 @@ export function indexOfCell(id: NavCellId): number {
   return NAV_GRID.findIndex((c) => c.id === id);
 }
 
-/** Move focus in 2D grid; clamps at edges. */
 export function moveFocus(
   currentId: NavCellId,
   dir: "up" | "down" | "left" | "right"
@@ -74,6 +94,5 @@ export function moveFocus(
 }
 
 export function placeholderTitle(id: NavCellId): string {
-  const cell = NAV_GRID.find((c) => c.id === id);
-  return cell ? cell.label : id;
+  return NAV_GRID.find((c) => c.id === id)?.label ?? id;
 }
