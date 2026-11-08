@@ -21,6 +21,7 @@ import {
   loadChatState,
   saveChatState,
   createConversation,
+  deleteConversation,
   appendMessage,
   replaceAssistantTail,
   fileToAttachment,
@@ -323,6 +324,9 @@ function App() {
                 });
               }}
               onSelect={(id) => persistChat({ ...chat, activeId: id })}
+              onDelete={(id) => {
+                persistChat(deleteConversation(chat, id));
+              }}
             />
             <div
               className={`voice-bar${voicePhase === "recording" ? " is-recording" : ""}`}
@@ -372,13 +376,6 @@ function App() {
         return <TodayView />;
       case "this_week":
         return <ThisWeekView />;
-      case "feedback":
-        return (
-          <div>
-            <h2>Feedback</h2>
-            <p className="hint">Placeholder for feedback / issues.</p>
-          </div>
-        );
       case "settings":
         return (
           <div className="overlay-settings">

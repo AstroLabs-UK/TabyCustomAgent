@@ -1,5 +1,5 @@
 /**
- * Navigation model — official Taby-style order (screenshot-aligned).
+ * Navigation model — official Taby-style order (no Feedback).
  */
 
 export type NavCellId =
@@ -12,7 +12,6 @@ export type NavCellId =
   | "today"
   | "this_week"
   | "focus"
-  | "feedback"
   | "settings";
 
 export type NavCell = {
@@ -26,7 +25,6 @@ export type NavCell = {
 
 export const NAV_COLS = 2;
 
-/** Row-major order matching official HUD screenshot. */
 const LABELS: { id: NavCellId; label: string; icon: string }[] = [
   { id: "chat", label: "Chat", icon: "chat" },
   { id: "home", label: "Home", icon: "home" },
@@ -37,7 +35,6 @@ const LABELS: { id: NavCellId; label: string; icon: string }[] = [
   { id: "today", label: "Today", icon: "today" },
   { id: "this_week", label: "This week", icon: "week" },
   { id: "focus", label: "Focus", icon: "focus" },
-  { id: "feedback", label: "Feedback", icon: "feedback" },
   { id: "settings", label: "Settings", icon: "settings" },
 ];
 
@@ -67,7 +64,6 @@ export function moveFocus(
   if (dir === "down") row = Math.min(NAV_ROWS - 1, row + 1);
   if (dir === "left") col = Math.max(0, col - 1);
   if (dir === "right") col = Math.min(NAV_COLS - 1, col + 1);
-  // Settings is alone on last row left — clamp
   return cellAt(row, col)?.id ?? currentId;
 }
 

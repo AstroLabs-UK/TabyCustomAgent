@@ -1350,3 +1350,235 @@ body,
 .app-main {
   display: none !important;
 }
+
+/* ─── Chat liquid-glass (match menu) ─────────────────────────── */
+
+.chat-glass {
+  color: #f4f4f5;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 280px;
+}
+
+.chat-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.glass-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f4f4f5 !important;
+  border-radius: 999px !important;
+  padding: 8px 14px !important;
+  font: inherit;
+  cursor: pointer;
+}
+
+.glass-btn.primary {
+  background: rgba(255, 255, 255, 0.16) !important;
+}
+
+.glass-btn.danger {
+  color: #fecaca !important;
+  border-color: rgba(248, 113, 113, 0.35) !important;
+}
+
+.chat-history {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chat-history li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.chat-history-item {
+  flex: 1;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #f4f4f5;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.chat-history-item.is-active,
+.chat-history-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.chat-history-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-history-del {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.chat-history-del:hover {
+  color: #fecaca;
+}
+
+.chat-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-height: 200px;
+  max-height: min(420px, calc(100vh - 200px));
+  overflow: auto;
+  padding: 4px 2px 12px;
+}
+
+.chat-bubble {
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f4f4f5;
+}
+
+.chat-bubble--user {
+  background: rgba(255, 255, 255, 0.12);
+  align-self: flex-end;
+  max-width: 92%;
+}
+
+.chat-bubble--assistant {
+  background: rgba(0, 0, 0, 0.22);
+  align-self: stretch;
+}
+
+.chat-bubble-role {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+}
+
+.chat-bubble-body {
+  color: #f4f4f5 !important;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.chat-bubble-body p {
+  margin: 0 0 10px;
+  color: #f4f4f5;
+}
+
+.chat-bubble-body p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-bubble-body a {
+  color: #93c5fd;
+}
+
+.chat-empty,
+.chat-streaming {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+/* Module panel: force light text + spacing */
+.hud-module-card,
+.hud-module-card * {
+  color: #f4f4f5;
+}
+
+.hud-module-card .hint,
+.hud-module-card .meta {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.hud-module-card .module-row {
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.hud-module-card .module-list {
+  gap: 10px;
+}
+
+.hud-module-card .module-list li {
+  padding: 10px 0;
+}
+
+.hud-module-card .form-grid {
+  gap: 14px;
+}
+
+.hud-module-card .field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.hud-module-card .field span {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.hud-module-card .row-actions {
+  margin-top: 16px;
+  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.hud-module-card input,
+.hud-module-card textarea,
+.hud-module-card select {
+  color: #f4f4f5 !important;
+  background: rgba(0, 0, 0, 0.28) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.hud-module-card .btn {
+  color: #f4f4f5;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 8px 14px;
+}
+
+.hud-module-card .btn.primary {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.voice-bar {
+  margin-top: 14px;
+  gap: 12px;
+}

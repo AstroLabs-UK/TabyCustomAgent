@@ -97,8 +97,14 @@ export function HudOverlay({
   }, [activeModuleId, phase, onCloseModule, dismissAll]);
 
   const toggleNav = useCallback(() => {
-    setPhase((p) => reduceHudPhase(p, { type: "toggle_nav" }));
-  }, []);
+    // Four-box: close module panel so only nav dropdown shows
+    onCloseModule?.();
+    setPhase((p) => {
+      if (p === "expanded") return "compact";
+      if (p === "compact" || p === "hidden") return "expanded";
+      return reduceHudPhase(p, { type: "toggle_nav" });
+    });
+  }, [onCloseModule]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -180,13 +186,13 @@ export function HudOverlay({
               onRemoveAttachment={onRemoveAttachment}
               onVoiceClick={onVoiceClick}
             />
-            {expanded && (
+            {expanded && !activeModuleId && (
               <NavGrid
                 onActivate={handleActivate}
                 onCollapse={handleCollapseNav}
               />
             )}
-            {modulePanel && (
+            {!expanded && modulePanel && (
               <div className="hud-module-panel" data-testid="hud-module-panel">
                 {modulePanel}
               </div>

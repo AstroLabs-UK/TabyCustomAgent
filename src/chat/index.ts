@@ -7,3 +7,4 @@ export { newId } from "./id";
 
 export * from "./attachments";
 export { AttachmentChips } from "./AttachmentChips";
+export { deleteConversation } from "./store";

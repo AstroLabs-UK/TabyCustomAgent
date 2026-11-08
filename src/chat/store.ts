@@ -105,3 +105,15 @@ export function replaceAssistantTail(
   }
   return { ...conv, updatedAt: Date.now(), messages };
 }
+
+export function deleteConversation(
+  state: ChatState,
+  id: string
+): ChatState {
+  const conversations = state.conversations.filter((c) => c.id !== id);
+  const activeId =
+    state.activeId === id
+      ? conversations[0]?.id ?? null
+      : state.activeId;
+  return { conversations, activeId };
+}
