@@ -3,7 +3,7 @@ import { DwellTimer } from "./dwellTimer";
 import { reduceHudPhase, type HudPhase } from "./stateMachine";
 import { CompactPrompt } from "./CompactPrompt";
 import { NavGrid } from "./NavGrid";
-import { placeholderTitle, type NavCellId } from "./navGrid";
+import { placeholderTitle, type NavCellId } from "./navModel";
 
 export type HudOverlayProps = {
   dwellMs: number;

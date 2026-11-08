@@ -5,7 +5,7 @@ import {
   NAV_ROWS,
   moveFocus,
   type NavCellId,
-} from "./navGrid";
+} from "./navModel";
 
 export type NavGridProps = {
   onActivate: (id: NavCellId) => void;

@@ -7,7 +7,7 @@ import {
   cellAt,
   moveFocus,
   indexOfCell,
-} from "../hud/navGrid";
+} from "../hud/navModel";
 
 describe("nav grid model (Stage 2 — frozen layout)", () => {
   it("is exactly 5 rows × 2 cols (10 cells)", () => {

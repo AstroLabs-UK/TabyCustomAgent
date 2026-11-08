@@ -16,7 +16,7 @@ export {
   placeholderTitle,
   type NavCell,
   type NavCellId,
-} from "./navGrid";
+} from "./navModel";
 export { HudOverlay } from "./HudOverlay";
 export { CompactPrompt } from "./CompactPrompt";
 export { NavGrid } from "./NavGrid";
