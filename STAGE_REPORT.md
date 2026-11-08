@@ -115,3 +115,17 @@ Windows runners.
 - `typecheck` → `node ./node_modules/typescript/bin/tsc --noEmit`
 - Moved `vite`, `@vitejs/plugin-react`, `typescript` into **dependencies**
 - Workflow verifies `node_modules/vite/bin/vite.js` exists before build
+
+## Patch — lockfile used internal npm proxy (broke GHA installs)
+
+Root cause: `package-lock.json` had `resolved` URLs pointing at
+`http://35.245.43.102/npm/...` (sandbox mirror). GitHub Actions cannot reach
+that host, so packages like `vite` / `typescript` failed to install while some
+others (already on registry.npmjs.org) succeeded — matching the symptom
+`@tauri-apps/cli` present, `vite` missing.
+
+Fixes:
+- Regenerated `package-lock.json` against **https://registry.npmjs.org/**
+- Added `.npmrc` pinning the public registry
+- Workflow: `npm_config_registry` set; if vite/tsc still missing after `npm ci`,
+  runs `npm install` fallback and re-checks

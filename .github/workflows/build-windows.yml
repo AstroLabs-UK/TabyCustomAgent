@@ -44,24 +44,36 @@ jobs:
           workspaces: src-tauri -> target
 
       - name: Install frontend dependencies
-        run: npm ci --include=dev
+        run: |
+          npm ci --include=dev
         env:
           NODE_ENV: development
+          npm_config_registry: https://registry.npmjs.org/
 
-      - name: Verify frontend toolchain
+      - name: Verify frontend toolchain (reinstall if needed)
         shell: pwsh
         run: |
           Write-Host "node_modules/vite exists:" (Test-Path "node_modules/vite/bin/vite.js")
           Write-Host "node_modules/typescript exists:" (Test-Path "node_modules/typescript/bin/tsc")
           Write-Host "node_modules/@tauri-apps/cli exists:" (Test-Path "node_modules/@tauri-apps/cli")
-          Get-ChildItem node_modules/vite -ErrorAction SilentlyContinue | Select-Object -First 10 Name
+          if (-not (Test-Path "node_modules/vite/bin/vite.js") -or -not (Test-Path "node_modules/typescript/bin/tsc")) {
+            Write-Host "Toolchain incomplete after npm ci — running npm install fallback"
+            npm install --include=dev --registry=https://registry.npmjs.org/
+          }
           if (-not (Test-Path "node_modules/vite/bin/vite.js")) {
-            Write-Error "vite not installed — npm ci likely skipped devDependencies"
+            Write-Error "vite still missing after npm install"
+            Get-ChildItem node_modules -ErrorAction SilentlyContinue | Select-Object -First 30 Name
             exit 1
           }
+          node ./node_modules/vite/bin/vite.js --version
+        env:
+          NODE_ENV: development
+          npm_config_registry: https://registry.npmjs.org/
 
       - name: Vite production build (fail fast)
         run: npm run build
+        env:
+          npm_config_registry: https://registry.npmjs.org/
 
       - name: Decide whether to publish a GitHub Release
         id: release
