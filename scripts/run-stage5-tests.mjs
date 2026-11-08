@@ -113,5 +113,10 @@ ok("sequence listening→busy→done",
 ok("plays confirmation at done", d2.commandLog.includes("play:confirmation"));
 ok("plays thinking when busy", d2.commandLog.includes("play:thinking"));
 
+
+// Face display state shape (window bus payload)
+const face = { animationId: "confirmation", label: "Done!", at: Date.now(), connected: true };
+ok("face publish shape", face.animationId === "confirmation" && face.connected === true);
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

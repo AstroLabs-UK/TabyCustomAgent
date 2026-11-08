@@ -1,34 +1,28 @@
-# Stage 5 report — Device facade + simulators
+# Stage 5 report — Device facade + simulators (+ mock face window)
 
 ## Automated results
-- suite: **PASS**
-- Stage 5: **11/11**
+- suite: **PASS** (Stage 5 unit tests)
 - notes:
-  - `DeviceFacade` + `MockDevice` (command log, choice events, unsupported IDs)
-  - `BleDeviceClient` / `UsbDeviceClient` stubs (`PENDING_HARDWARE`)
-  - Animation map load/validate (`configs/animation-map.json` + TS default)
-  - `ChatDeviceOrchestrator`: listening → busy → done; offline skips without throw
-  - Chat send path drives orchestrator when mock connected
+  - DeviceFacade / MockDevice / BLE+USB stubs / animation map / orchestrator (prior)
+  - **Mock face window**: opens on “Connect mock device”
+  - Face UI shows listening / thinking / confirmation / error / idle
+  - `play()` publishes via BroadcastChannel + localStorage for cross-window sync
+  - Tauri `WebviewWindow` label `face` (capabilities updated); browser `window.open` fallback
+
+## How to see faces
+1. Open Settings → **Connect mock device**
+2. A second window **“Mock Taby Face”** opens
+3. Send a chat message (HUD or Chat) → face cycles listening → thinking → done
 
 ## Deliverables
-
 | Item | Status |
 |------|--------|
-| DeviceFacade interface | Done |
-| MockDevice | Done |
-| BLE client (incomplete until HW) | Done (stub, PENDING_HARDWARE) |
-| USB client stub | Done |
-| Animation map JSON + validate IDs | Done |
+| DeviceFacade + Mock + BLE/USB stubs | Done |
+| Animation map + validation | Done |
 | Orchestrator listening→busy→done | Done |
+| Visible mock face second window | Done |
 
 ## Human review
-- None required without hardware
-- Optional: paste mock command log after a chat turn
-
-## Hardware
-- `PENDING_HARDWARE` for real BLE `play confirmation`
-
-## Exit
-Software GO when you approve. Hardware may stay pending.
+- Does the face window open and animate through a chat turn?
 
 Reply **GO** or **CHANGES**.

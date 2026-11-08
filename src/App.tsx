@@ -7,7 +7,7 @@ import {
   saveSettings,
   type AppSettings,
 } from "./settings";
-import { mockDevice, ChatDeviceOrchestrator, getDevice } from "./device";
+import { mockDevice, ChatDeviceOrchestrator, getDevice, openFaceWindow } from "./device";
 import { completeStream, aiStatusLabel, aiStatusOk } from "./ai";
 import { HudOverlay } from "./hud";
 import type { NavCellId } from "./hud";
@@ -73,6 +73,12 @@ function App() {
   async function handleConnectMock() {
     await mockDevice.connect();
     setDeviceState(mockDevice.getConnectionState());
+    const opened = await openFaceWindow();
+    if (opened === "failed") {
+      setStatusLine("Could not open face window — allow popups or use Tauri");
+    } else {
+      setStatusLine("Mock face window open");
+    }
   }
 
   const ensureActiveConversation = useCallback((): Conversation => {
@@ -113,6 +119,7 @@ function App() {
         if (device.getConnectionState() !== "connected" && settings.device.transport === "mock") {
           await mockDevice.connect();
           setDeviceState(mockDevice.getConnectionState());
+          void openFaceWindow();
         }
       } catch { /* offline ok */ }
       await orch.onUserListening();

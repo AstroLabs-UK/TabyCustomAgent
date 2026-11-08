@@ -585,3 +585,197 @@ kbd {
     grid-template-columns: 1fr;
   }
 }
+
+/* ─── Stage 5: Mock face window ──────────────────────────────── */
+
+.face-shell {
+  min-height: 100vh;
+  margin: 0;
+  padding: 16px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #fff 0%, var(--color-surface) 100%);
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.face-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.face-brand {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.face-conn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.face-conn.on {
+  background: #e6f6ee;
+  border-color: #5bb98c;
+  color: #1a6b45;
+}
+
+.face-conn.off {
+  color: var(--color-text-muted);
+}
+
+.face-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.face-circle {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: #fff7f2;
+  border: 3px solid var(--color-accent);
+  box-shadow: var(--shadow-hud);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  transition: background 200ms ease, transform 200ms ease, border-color 200ms ease;
+}
+
+.face-anim--listening {
+  background: #eef4fc;
+  border-color: #7aa2d4;
+  animation: face-pulse 1.2s ease-in-out infinite;
+}
+
+.face-anim--thinking {
+  background: #fff4e8;
+  border-color: #e0a86a;
+  animation: face-tilt 1.4s ease-in-out infinite;
+}
+
+.face-anim--confirmation,
+.face-anim--done {
+  background: #e9f7ef;
+  border-color: #5bb98c;
+  transform: scale(1.04);
+}
+
+.face-anim--error {
+  background: #fdeceb;
+  border-color: #d97b7b;
+}
+
+.face-anim--idle {
+  background: #fff7f2;
+}
+
+.face-anim--happy {
+  background: #fff3d6;
+  border-color: #e8c35a;
+}
+
+.face-eyes {
+  display: flex;
+  gap: 28px;
+}
+
+.face-eye {
+  width: 16px;
+  height: 22px;
+  border-radius: 50%;
+  background: #171717;
+  display: block;
+}
+
+.face-anim--listening .face-eye {
+  height: 18px;
+  border-radius: 8px;
+}
+
+.face-anim--thinking .face-eye {
+  height: 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.face-mouth {
+  width: 36px;
+  height: 18px;
+  border: 3px solid #171717;
+  border-top: none;
+  border-radius: 0 0 20px 20px;
+  background: transparent;
+}
+
+.face-mouth--thinking {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid #171717;
+}
+
+.face-mouth--error {
+  border-radius: 20px 20px 0 0;
+  border-top: 3px solid #171717;
+  border-bottom: none;
+  transform: translateY(4px);
+}
+
+.face-mouth--confirmation,
+.face-mouth--happy {
+  width: 44px;
+  height: 22px;
+}
+
+.face-label {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.face-id {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-family: ui-monospace, monospace;
+}
+
+.face-footer {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+@keyframes face-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+@keyframes face-tilt {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .face-anim--listening,
+  .face-anim--thinking {
+    animation: none;
+  }
+}

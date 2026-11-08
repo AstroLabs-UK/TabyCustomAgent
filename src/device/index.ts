@@ -5,3 +5,6 @@ export * from "./usbClient";
 export * from "./animationMap";
 export * from "./registry";
 export * from "./orchestrator";
+export * from "./faceBus";
+export * from "./openFaceWindow";
+export { FaceWindowApp } from "./FaceWindowApp";

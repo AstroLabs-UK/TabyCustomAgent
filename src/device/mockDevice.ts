@@ -9,6 +9,7 @@ import {
   validateAnimationId,
   type AnimationMap,
 } from "./animationMap";
+import { FACE_LABELS, publishFaceState } from "./faceBus";
 
 export class MockDevice implements DeviceFacade {
   readonly transport: DeviceTransport = "mock";
@@ -31,12 +32,19 @@ export class MockDevice implements DeviceFacade {
     await delay(10);
     this.state = "connected";
     this.emit({ type: "ready", payload: "READY" });
+    this.publish("idle");
   }
 
   async disconnect(): Promise<void> {
     this.state = "disconnected";
     this.commandLog.length = 0;
     this.warnings.length = 0;
+    publishFaceState({
+      animationId: "idle",
+      label: "Offline",
+      at: Date.now(),
+      connected: false,
+    });
   }
 
   async play(animationId: string): Promise<void> {
@@ -46,10 +54,12 @@ export class MockDevice implements DeviceFacade {
       this.warnings.push(check.reason);
       this.commandLog.push(`play:UNSUPPORTED:${animationId}`);
       this.emit({ type: "err", payload: check.reason });
+      this.publish("error");
       return;
     }
     this.commandLog.push(`play:${animationId}`);
     this.emit({ type: "ok", payload: "OK" });
+    this.publish(animationId);
   }
 
   async showText(title: string, subtitle?: string): Promise<void> {
@@ -71,6 +81,7 @@ export class MockDevice implements DeviceFacade {
     this.ensureConnected();
     this.commandLog.push("CLEAR");
     this.emit({ type: "ok", payload: "OK" });
+    this.publish("idle");
   }
 
   onEvent(handler: (ev: DeviceEvent) => void): () => void {
@@ -78,9 +89,17 @@ export class MockDevice implements DeviceFacade {
     return () => this.handlers.delete(handler);
   }
 
-  /** Test helper: simulate user choice on device */
   simulateChoice(index: number): void {
     this.emit({ type: "choice", choiceIndex: index });
+  }
+
+  private publish(animationId: string): void {
+    publishFaceState({
+      animationId,
+      label: FACE_LABELS[animationId] ?? animationId,
+      at: Date.now(),
+      connected: this.state === "connected",
+    });
   }
 
   private ensureConnected(): void {
