@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, type AppSettings } from "./types";
+import { loadApiKey, saveApiKey } from "./secureStore";
 
 const STORAGE_KEY = "taby-custom-agent-settings";
 
@@ -10,7 +11,6 @@ export type StorageLike = {
 
 function getStorage(): StorageLike {
   if (typeof localStorage !== "undefined") return localStorage;
-  // Node / test fallback
   const map = new Map<string, string>();
   return {
     getItem: (k) => map.get(k) ?? null,
@@ -33,22 +33,37 @@ export function setStorageBackend(backend: StorageLike): void {
 export function loadSettings(): AppSettings {
   try {
     const raw = storage.getItem(STORAGE_KEY);
-    if (!raw) return structuredClone(DEFAULT_SETTINGS);
+    const base = structuredClone(DEFAULT_SETTINGS);
+    if (!raw) {
+      base.ai.apiKey = loadApiKey();
+      return base;
+    }
     const parsed = JSON.parse(raw) as Partial<AppSettings>;
+    // Prefer dedicated secure store for apiKey; fall back to legacy field once
+    const legacyKey =
+      typeof parsed.ai?.apiKey === "string" ? parsed.ai.apiKey : "";
+    const secureKey = loadApiKey();
+    const apiKey = secureKey || legacyKey;
     return {
-      ...structuredClone(DEFAULT_SETTINGS),
+      ...base,
       ...parsed,
-      ai: { ...DEFAULT_SETTINGS.ai, ...parsed.ai },
-      hud: { ...DEFAULT_SETTINGS.hud, ...parsed.hud },
-      device: { ...DEFAULT_SETTINGS.device, ...parsed.device },
+      ai: { ...base.ai, ...parsed.ai, apiKey },
+      hud: { ...base.hud, ...parsed.hud },
+      device: { ...base.device, ...parsed.device },
     };
   } catch {
-    return structuredClone(DEFAULT_SETTINGS);
+    const base = structuredClone(DEFAULT_SETTINGS);
+    base.ai.apiKey = loadApiKey();
+    return base;
   }
 }
 
 export function saveSettings(settings: AppSettings): void {
-  storage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  // Persist API key only in secure store — strip from general JSON
+  saveApiKey(settings.ai.apiKey ?? "");
+  const publicCopy = structuredClone(settings);
+  publicCopy.ai.apiKey = "";
+  storage.setItem(STORAGE_KEY, JSON.stringify(publicCopy));
 }
 
 export function resetSettings(): void {

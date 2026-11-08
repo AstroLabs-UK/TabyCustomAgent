@@ -8,7 +8,7 @@ import {
   type AppSettings,
 } from "./settings";
 import { mockDevice } from "./device";
-import { mockAi } from "./ai";
+import { completeStream, aiStatusLabel, aiStatusOk } from "./ai";
 import { HudOverlay } from "./hud";
 
 function App() {
@@ -53,8 +53,8 @@ function App() {
   async function handleTestMockAi() {
     setMockReply("");
     let acc = "";
-    for await (const chunk of mockAi.completeStream(
-      [{ role: "user", content: "Hello from Stage 2 nav" }],
+    for await (const chunk of completeStream(
+      [{ role: "user", content: "Hello from Stage 3 settings" }],
       settings.ai
     )) {
       if (chunk.type === "token" && chunk.text) {
@@ -64,10 +64,10 @@ function App() {
     }
   }
 
-  const connectionOk = deviceState === "connected";
-  const connectionLabel = connectionOk
-    ? "Mock device connected"
-    : "Device offline (mock)";
+  const deviceOk = deviceState === "connected";
+  const aiOk = aiStatusOk(settings.ai);
+  const connectionOk = deviceOk || aiOk;
+  const connectionLabel = `${deviceOk ? "Device connected" : "Device offline"} · ${aiStatusLabel(settings.ai)}`;
 
   return (
     <div className="app-shell">
@@ -80,7 +80,7 @@ function App() {
           void (async () => {
             setMockReply("");
             let acc = "";
-            for await (const chunk of mockAi.completeStream(
+            for await (const chunk of completeStream(
               [{ role: "user", content: text }],
               settings.ai
             )) {
@@ -104,13 +104,13 @@ function App() {
           <span>Custom Taby Agent</span>
         </div>
         <div className="status-pill">
-          Device: {deviceState} · Stage 2 nav
+          Device: {deviceState} · Stage 3 settings
         </div>
       </header>
 
       <main className="app-main">
         <section className="hero">
-          <h1>Top HUD + 2×5 nav</h1>
+          <h1>Settings + AI path</h1>
           <p>
             Hover the top-center edge for{" "}
             <strong>{settings.hud.dwellMs} ms</strong> to open the prompt.
@@ -176,7 +176,7 @@ function App() {
               >
                 <option value="mock">Mock (offline)</option>
                 <option value="groq">Groq</option>
-                <option value="openai_compatible">OpenAI-compatible</option>
+                <option value="openai-compatible">OpenAI-compatible</option>
               </select>
             </label>
             <label className="field">
@@ -233,7 +233,7 @@ function App() {
         </section>
 
         <p className="footer-note">
-          Stage 2 — HUD + frozen 2×5 nav layout. Physical Taby / real mouse HUD validation is
+          Stage 3 — settings, secure API key store, mock + live AI. Physical Taby / real mouse HUD validation is
           on your machine. CI builds the Windows installer on push to main.
         </p>
       </main>

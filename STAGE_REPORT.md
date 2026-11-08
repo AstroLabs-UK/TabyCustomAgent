@@ -1,42 +1,33 @@
-# Stage 2 report — Expanded 2×5 navigation
+# Stage 3 report — Settings + AI key path
 
 ## Automated results
-- suite: **PASS**
-- runner: `npm run test:unit`
-  - Stage 0: 11/11
-  - Stage 1: 10/10
-  - Stage 2: 14/14
+- suite: **PASS** (stages 0–3 unit runners)
 - notes:
-  - Grid model locked: 5×2, exact labels, row-shared pastels
-  - Row 3 peach `#FFE9DB` (not yellow)
-  - Expand/collapse via four-box → X toggle
-  - Keyboard: arrows, Enter, Escape (expanded→compact→hidden)
-  - Active route placeholder chip updates on cell activate
-  - Prompt remains visible while nav expanded
+  - Live config validation: empty key/url rejected in non-mock mode
+  - Mock stream still returns fixed token chunks + done
+  - API key stored in dedicated secure blob; public settings JSON strips key
+  - `assertNoKeyInText` guards against accidental key logging
+  - `completeStream` routes mock vs Groq/OpenAI-compatible HTTP SSE client
 
-## CI fix (Release vs tag-only)
-- `tauri-apps/tauri-action` now **builds only** (no tag/release from that action)
-- **`softprops/action-gh-release@v2`** publishes a real GitHub **Release** with assets
-- Continuous tags: `continuous-<branch>-<run_number>` (prerelease)
-- Version tags `v*`: non-prerelease Release
+## CI — Releases page (not Tags-only)
+- Publish step uses **`gh release create`** (GitHub CLI)
+- Explicit `--target $GITHUB_SHA`, notes file, asset upload
+- Verifies with `gh release view` JSON after create
+- Deletes prior same-tag release before republish
+- Why Tags-only happened: creating a git tag without a successful **Release** API
+  object leaves entries on **Tags**; `gh release create` always creates a Release
 
-## Deliverables checklist (Stage 2)
+## Deliverables checklist (Stage 3)
 
 | Item | Status |
 |------|--------|
-| Four-box → X, filled accent, white icon when open | Done |
-| Grid exactly Chat/Home … Habits/This week | Done |
-| Prompt visible while expanded | Done |
-| Placeholder route on cell activate | Done |
-| Keyboard arrows / Enter / Escape | Done |
-| Row pastels from DESIGN_TOKENS (peach row 3) | Done |
-| Unit tests | Done (14 Stage 2) |
-| Real GitHub Release publish | Done (workflow) |
+| Settings form: key, model, base URL, dwell, transport | Done (existing + secure key) |
+| Secure storage for API key | Done (`secureStore` localStorage façade) |
+| AI client: mock + live Groq/OpenAI-compatible | Done |
+| Connection status string in HUD | Done (device + AI label) |
+| Tests: key not logged, mock stream, live validation | Done |
 
-## Human review questions only
-
-1. Expanded menu: do **columns, spacing, and 2×5 labels** match intent?
-2. Does the **four-box → X** treatment (filled `#E98F78`, white icon) look right?
-3. Any visual tweaks before we **freeze the nav layout**?
+## Human review
+- Settings page readability only
 
 Reply **GO** or list **CHANGES**.
