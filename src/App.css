@@ -798,14 +798,14 @@ kbd {
   position: relative;
 }
 
-/* Upstream GIFs are portrait for the device; rotate 90° left for desk preview */
+/* Upstream GIFs are portrait; rotate 270° CW from raw (90° CW was upside-down) */
 .face-gif {
   width: auto;
   height: auto;
   max-width: 260px;
   max-height: 260px;
   object-fit: contain;
-  transform: rotate(-90deg);
+  transform: rotate(270deg); /* 270° CW from raw — long edge bottom, right-side up */
   transform-origin: center center;
   image-rendering: auto;
   user-select: none;
@@ -1706,7 +1706,7 @@ html, body, #root {
   background: transparent !important;
 }
 
-/* Jet-black face card — exact size of GIF after rotate +90° (456×280) */
+/* Jet-black face card — exact size of GIF after rotate 270° CW (456×280) */
 .local-face-panel {
   flex: 0 0 auto;
   width: 100%;
@@ -1744,7 +1744,7 @@ html, body, #root {
   max-height: none;
   object-fit: fill;
   background: #000000;
-  transform: translate(-50%, -50%) rotate(90deg); /* 90° right from raw GIF */
+  transform: translate(-50%, -50%) rotate(270deg); /* 270° CW from raw GIF */
   transform-origin: center center;
   user-select: none;
   pointer-events: none;
