@@ -1,23 +1,40 @@
 import type { AiProviderConfig } from "../ai/types";
 import type { DeviceTransport } from "../device/types";
 
-/** Where the top-edge hover opens the HUD when the window is hidden. */
-export type HoverActivationArea = "center" | "wide" | "full";
+/** Top-edge activation zone (logical / CSS px relative to primary monitor). */
+export type EdgeZone = {
+  /** Center X as fraction of primary screen width (0–1). Default 0.5 */
+  centerFrac: number;
+  /** Zone width as fraction of screen width (0.05–1). Default ~0.36 */
+  widthFrac: number;
+  /** Depth from top in physical-ish px. Default 8 */
+  depthPx: number;
+};
 
 export interface AppSettings {
   ai: AiProviderConfig;
   hud: {
+    /** Fallback / productivity dwell (ms) */
     dwellMs: number;
+    dwellBrowserMs: number;
+    dwellGameMs: number;
     alwaysOnTop: boolean;
     faceReactionsEnabled: boolean;
-    /** Horizontal band used for top-edge hover activation. Default: center-only. */
-    hoverActivationArea: HoverActivationArea;
+    /** Show face GIFs on-screen (no physical Taby required). */
+    localFaceEnabled: boolean;
+    edgeZone: EdgeZone;
   };
   device: {
     transport: DeviceTransport;
     preferredId: string;
   };
 }
+
+export const DEFAULT_EDGE_ZONE: EdgeZone = {
+  centerFrac: 0.5,
+  widthFrac: 0.36,
+  depthPx: 10,
+};
 
 export const DEFAULT_SETTINGS: AppSettings = {
   ai: {
@@ -29,9 +46,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   },
   hud: {
     dwellMs: 500,
+    dwellBrowserMs: 700,
+    dwellGameMs: 1000,
     alwaysOnTop: true,
     faceReactionsEnabled: true,
-    hoverActivationArea: "center",
+    localFaceEnabled: true,
+    edgeZone: { ...DEFAULT_EDGE_ZONE },
   },
   device: {
     transport: "mock",

@@ -1,25 +1,43 @@
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use mouse_position::mouse_position::Mouse;
+use serde::{Deserialize, Serialize};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, WindowEvent,
 };
 
-/// Max cursor Y (physical px from desktop top) to count as “top edge”.
-const TOP_EDGE_PX: i32 = 8;
-/// How long the cursor must stay in the edge before opening (ms).
-const EDGE_DWELL_MS: u64 = 450;
-/// Poll interval for global cursor (ms).
 const POLL_MS: u64 = 40;
 
-/// Half-band width as percent of screen width (stored * 100 for AtomicU32).
-/// center ≈ 18%, wide ≈ 35%, full = 50%.
-const DEFAULT_HALF_ZONE_PCT_X100: u32 = 1800; // 18.00%
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct EdgeZoneConfig {
+    /// 0–1 center along primary width
+    center_frac: f64,
+    /// 0–1 width fraction
+    width_frac: f64,
+    depth_px: i32,
+    dwell_productivity_ms: u64,
+    dwell_browser_ms: u64,
+    dwell_game_ms: u64,
+}
+
+impl Default for EdgeZoneConfig {
+    fn default() -> Self {
+        Self {
+            center_frac: 0.5,
+            width_frac: 0.36,
+            depth_px: 10,
+            dwell_productivity_ms: 500,
+            dwell_browser_ms: 700,
+            dwell_game_ms: 1000,
+        }
+    }
+}
 
 fn show_overlay(app: &tauri::AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
@@ -43,33 +61,154 @@ fn is_main_visible(app: &tauri::AppHandle) -> bool {
         .unwrap_or(false)
 }
 
-/// Rough primary width from cursor x (no Win32 dependency).
-fn estimate_screen_width(cursor_x: i32) -> i32 {
-    const CANDIDATES: [i32; 6] = [1280, 1366, 1440, 1600, 1920, 2560];
-    for w in CANDIDATES {
-        if cursor_x >= 0 && cursor_x < w {
-            return w;
+/// Primary monitor size in physical pixels.
+fn primary_screen_size() -> (i32, i32) {
+    #[cfg(target_os = "windows")]
+    {
+        // SM_CXSCREEN = 0, SM_CYSCREEN = 1
+        extern "system" {
+            fn GetSystemMetrics(index: i32) -> i32;
+        }
+        unsafe {
+            let w = GetSystemMetrics(0);
+            let h = GetSystemMetrics(1);
+            if w > 0 && h > 0 {
+                return (w, h);
+            }
         }
     }
-    if cursor_x < 0 {
-        return 1920;
+    #[cfg(target_os = "linux")]
+    {
+        // Best-effort; Wayland may not expose this the same way
+        if let Ok(w) = std::env::var("GDK_SCALE") {
+            let _ = w;
+        }
     }
-    (cursor_x + 200).max(1920)
+    (1920, 1080)
 }
 
-fn half_zone_pct_from_area(area: &str) -> u32 {
-    match area {
-        "wide" => 3500, // 35%
-        "full" => 5000, // 50% → full edge
-        _ => 1800,      // center ~36% total band
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum FgClass {
+    Productivity,
+    Browser,
+    Game,
+}
+
+fn classify_foreground() -> FgClass {
+    #[cfg(target_os = "windows")]
+    {
+        return classify_foreground_windows();
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        FgClass::Productivity
     }
 }
 
-/// Background thread: global cursor poll (works while window is hidden / in tray).
+#[cfg(target_os = "windows")]
+fn classify_foreground_windows() -> FgClass {
+    use std::ffi::OsString;
+    use std::os::windows::ffi::OsStringExt;
+
+    extern "system" {
+        fn GetForegroundWindow() -> isize;
+        fn GetWindowThreadProcessId(hwnd: isize, pid: *mut u32) -> u32;
+        fn OpenProcess(access: u32, inherit: i32, pid: u32) -> isize;
+        fn CloseHandle(handle: isize) -> i32;
+        fn QueryFullProcessImageNameW(
+            process: isize,
+            flags: u32,
+            exe: *mut u16,
+            size: *mut u32,
+        ) -> i32;
+    }
+
+    const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
+
+    unsafe {
+        let hwnd = GetForegroundWindow();
+        if hwnd == 0 {
+            return FgClass::Productivity;
+        }
+        let mut pid: u32 = 0;
+        GetWindowThreadProcessId(hwnd, &mut pid);
+        if pid == 0 {
+            return FgClass::Productivity;
+        }
+        let proc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if proc == 0 {
+            return FgClass::Productivity;
+        }
+        let mut buf = [0u16; 512];
+        let mut size = buf.len() as u32;
+        let ok = QueryFullProcessImageNameW(proc, 0, buf.as_mut_ptr(), &mut size);
+        CloseHandle(proc);
+        if ok == 0 {
+            return FgClass::Productivity;
+        }
+        let os = OsString::from_wide(&buf[..size as usize]);
+        let path = os.to_string_lossy().to_lowercase();
+        let name = path.rsplit(['\\', '/']).next().unwrap_or(&path);
+
+        const BROWSERS: &[&str] = &[
+            "chrome.exe",
+            "msedge.exe",
+            "firefox.exe",
+            "brave.exe",
+            "opera.exe",
+            "vivaldi.exe",
+            "iexplore.exe",
+            "arc.exe",
+        ];
+        if BROWSERS.iter().any(|b| name == *b) {
+            return FgClass::Browser;
+        }
+
+        // Lightweight game heuristics
+        const GAME_HINTS: &[&str] = &[
+            "steam",
+            "epicgames",
+            "game",
+            "unity",
+            "unreal",
+            "riot",
+            "valorant",
+            "league",
+            "cs2",
+            "dota",
+            "minecraft",
+            "roblox",
+            "origin",
+            "battle.net",
+            "ea-desktop",
+        ];
+        if GAME_HINTS.iter().any(|h| path.contains(h) || name.contains(h)) {
+            return FgClass::Game;
+        }
+        // Fullscreen-ish exclusive often ends with these
+        if name.ends_with(".exe")
+            && (name.contains("game")
+                || name.contains("client") && path.contains("games"))
+        {
+            return FgClass::Game;
+        }
+        FgClass::Productivity
+    }
+}
+
+fn dwell_for(cfg: &EdgeZoneConfig, class: FgClass) -> u64 {
+    match class {
+        FgClass::Productivity => cfg.dwell_productivity_ms,
+        FgClass::Browser => cfg.dwell_browser_ms,
+        FgClass::Game => cfg.dwell_game_ms,
+    }
+}
+
 fn start_edge_watcher(
     app: tauri::AppHandle,
     enabled: Arc<AtomicBool>,
-    half_zone_pct_x100: Arc<AtomicU32>,
+    zone: Arc<Mutex<EdgeZoneConfig>>,
+    opening: Arc<AtomicBool>,
 ) {
     thread::spawn(move || {
         let mut edge_since: Option<Instant> = None;
@@ -83,35 +222,51 @@ fn start_edge_watcher(
                 continue;
             }
 
-            // Only arm when overlay is hidden (tray mode)
-            if is_main_visible(&app) {
+            // Already visible or a show is in-flight → never open a second one
+            if is_main_visible(&app) || opening.load(Ordering::SeqCst) {
                 edge_since = None;
                 fired_this_dwell = false;
                 continue;
             }
 
-            let near_top = match Mouse::get_mouse_position() {
-                Mouse::Position { x, y } => {
-                    let screen_w = estimate_screen_width(x);
-                    let mid = screen_w / 2;
-                    let pct = half_zone_pct_x100.load(Ordering::Relaxed) as f64 / 10000.0;
-                    let half_zone = (screen_w as f64 * pct) as i32;
-                    let in_zone = (x - mid).abs() <= half_zone;
-                    y >= 0 && y <= TOP_EDGE_PX && in_zone
-                }
+            let cfg = zone.lock().map(|g| g.clone()).unwrap_or_default();
+            let (screen_w, _screen_h) = primary_screen_size();
+            let depth = cfg.depth_px.max(4);
+            let width = ((screen_w as f64) * cfg.width_frac.clamp(0.05, 1.0)).round() as i32;
+            let center = ((screen_w as f64) * cfg.center_frac.clamp(0.0, 1.0)).round() as i32;
+            let left = (center - width / 2).max(0);
+            let right = (center + width / 2).min(screen_w);
+
+            let near = match Mouse::get_mouse_position() {
+                Mouse::Position { x, y } => y >= 0 && y <= depth && x >= left && x <= right,
                 Mouse::Error => false,
             };
 
-            if near_top {
+            if near {
                 if edge_since.is_none() {
                     edge_since = Some(Instant::now());
                     fired_this_dwell = false;
                 }
                 if !fired_this_dwell {
                     if let Some(t0) = edge_since {
-                        if t0.elapsed() >= Duration::from_millis(EDGE_DWELL_MS) {
-                            show_overlay(&app);
-                            fired_this_dwell = true;
+                        let need = dwell_for(&cfg, classify_foreground());
+                        if t0.elapsed() >= Duration::from_millis(need) {
+                            // Single-open gate
+                            if opening
+                                .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                                .is_ok()
+                            {
+                                if !is_main_visible(&app) {
+                                    show_overlay(&app);
+                                }
+                                fired_this_dwell = true;
+                                // Release gate after a short pause so we don't double-fire
+                                let opening2 = opening.clone();
+                                thread::spawn(move || {
+                                    thread::sleep(Duration::from_millis(800));
+                                    opening2.store(false, Ordering::SeqCst);
+                                });
+                            }
                         }
                     }
                 }
@@ -138,31 +293,41 @@ fn set_edge_watch_enabled(enabled: bool, state: tauri::State<'_, Arc<AtomicBool>
     state.store(enabled, Ordering::Relaxed);
 }
 
-/// Set hover activation area: "center" | "wide" | "full".
 #[tauri::command]
-fn set_hover_activation_area(
-    area: String,
-    half_zone: tauri::State<'_, Arc<AtomicU32>>,
-) {
-    half_zone.store(half_zone_pct_from_area(area.as_str()), Ordering::Relaxed);
+fn update_edge_zone(
+    zone: EdgeZoneConfig,
+    state: tauri::State<'_, Arc<Mutex<EdgeZoneConfig>>>,
+) -> Result<(), String> {
+    let mut g = state.lock().map_err(|e| e.to_string())?;
+    *g = zone;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_primary_screen_size() -> (i32, i32) {
+    primary_screen_size()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let edge_enabled = Arc::new(AtomicBool::new(true));
     let edge_for_setup = edge_enabled.clone();
-    let half_zone = Arc::new(AtomicU32::new(DEFAULT_HALF_ZONE_PCT_X100));
-    let half_zone_for_setup = half_zone.clone();
+    let zone = Arc::new(Mutex::new(EdgeZoneConfig::default()));
+    let zone_for_setup = zone.clone();
+    let opening = Arc::new(AtomicBool::new(false));
+    let opening_for_setup = opening.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(edge_enabled)
-        .manage(half_zone)
+        .manage(zone)
+        .manage(opening)
         .invoke_handler(tauri::generate_handler![
             show_main_window,
             hide_main_window,
             set_edge_watch_enabled,
-            set_hover_activation_area
+            update_edge_zone,
+            get_primary_screen_size
         ])
         .setup(move |app| {
             let show_i = MenuItem::with_id(app, "show", "Show overlay", true, None::<&str>)?;
@@ -200,7 +365,12 @@ pub fn run() {
                 });
             }
 
-            start_edge_watcher(app.handle().clone(), edge_for_setup, half_zone_for_setup);
+            start_edge_watcher(
+                app.handle().clone(),
+                edge_for_setup,
+                zone_for_setup,
+                opening_for_setup,
+            );
 
             Ok(())
         })

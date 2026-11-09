@@ -25,6 +25,8 @@ export type HudOverlayProps = {
   modulePanel?: ReactNode;
   activeModuleId?: NavCellId | null;
   onCloseModule?: () => void;
+  /** On-screen face above prompt */
+  localFace?: ReactNode;
 };
 
 export function HudOverlay({
@@ -42,6 +44,7 @@ export function HudOverlay({
   modulePanel,
   activeModuleId,
   onCloseModule,
+  localFace,
 }: HudOverlayProps) {
   const [phase, setPhase] = useState<HudPhase>("compact"); // first run visible; click-off → tray
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
@@ -182,10 +185,11 @@ export function HudOverlay({
           }}
         >
           <div
-            className="hud-stage hud-stage--overlay"
+            className="hud-stage hud-stage--overlay hud-stage--stack"
             data-testid="hud-stage"
             onMouseDown={(e) => e.stopPropagation()}
           >
+            {localFace}
             <CompactPrompt
               connectionLabel={connectionLabel}
               connectionOk={connectionOk}
