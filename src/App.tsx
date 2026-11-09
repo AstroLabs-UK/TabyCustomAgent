@@ -44,6 +44,9 @@ import {
 } from "./modules/ModuleViews";
 import { tickReminders } from "./modules/reminders";
 import { invokeTool, SYSTEM_TOOL_PROMPT } from "./tools/registry";
+import { LocalFacePanel } from "./device/LocalFacePanel";
+import { typewriterToward } from "./chat/typewriter";
+import { publishFaceState, FACE_LABELS } from "./device/faceBus";
 import { applyOverlayMode } from "./overlay/windowChrome";
 import { ZoneVisualizer } from "./overlay/ZoneVisualizer";
 import { pushEdgeZoneToRust, toRuntime, clampZone } from "./overlay/edgeZone";
@@ -242,6 +245,25 @@ function App() {
 
         let acc = "";
         const toolNotes: string[] = [];
+        let display = "";
+        const tw = typewriterToward("", (visible) => {
+          display = visible;
+          const updated = replaceAssistantTail(conv, visible);
+          conv = updated;
+          conversations = conversations.map((c) =>
+            c.id === conv.id ? updated : c
+          );
+          persistChat({ conversations, activeId: conv.id });
+        }, { cps: 56 });
+        // Stay on working_loop while typing
+        if (settings.hud.faceReactionsEnabled !== false) {
+          publishFaceState({
+            animationId: "working_loop",
+            label: FACE_LABELS.working_loop ?? "Thinking",
+            at: Date.now(),
+            connected: true,
+          });
+        }
         for await (const chunk of completeStream(forApi, settings.ai)) {
           if (chunk.type === "tool_call" && chunk.toolName) {
             const args = (chunk.toolArgs ?? {}) as Record<string, unknown>;
@@ -251,12 +273,7 @@ function App() {
           }
           if (chunk.type === "token" && chunk.text) {
             acc += chunk.text;
-            const updated = replaceAssistantTail(conv, acc);
-            conv = updated;
-            conversations = conversations.map((c) =>
-              c.id === conv.id ? updated : c
-            );
-            persistChat({ conversations, activeId: conv.id });
+            tw.sync(acc);
           }
           if (chunk.type === "error") {
             const errText = acc
@@ -273,17 +290,17 @@ function App() {
             return;
           }
         }
+        // Finish typewriter to full text before done animation
         if (toolNotes.length) {
-          const summary =
+          acc =
             (acc ? acc + "\n\n" : "") +
             toolNotes.map((n) => `✓ ${n}`).join("\n");
-          const updated = replaceAssistantTail(conv, summary.trim());
-          conv = updated;
-          conversations = conversations.map((c) =>
-            c.id === conv.id ? updated : c
-          );
-          persistChat({ conversations, activeId: conv.id });
         }
+        tw.sync(acc);
+        // Allow typewriter to catch up
+        await new Promise((r) => setTimeout(r, Math.min(4000, Math.max(80, acc.length * 12))));
+        tw.flush();
+        tw.dispose();
         await orch.onTurnDone();
         setStatusLine("");
       } catch (e) {
@@ -670,6 +687,9 @@ function App() {
         modulePanel={modulePanel}
         activeModuleId={activeModule}
         onCloseModule={() => setActiveModule(null)}
+        localFace={
+          settings.hud.localFaceEnabled !== false ? <LocalFacePanel /> : null
+        }
       />
     </div>
   );

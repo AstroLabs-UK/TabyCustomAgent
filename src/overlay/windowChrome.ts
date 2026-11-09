@@ -4,11 +4,14 @@
 
 export type OverlayMode = "hidden" | "expanded";
 
-const EXPANDED_H = 720;
-
 async function getWin() {
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
   return getCurrentWindow();
+}
+
+function expandedHeight(): number {
+  if (typeof window === "undefined") return 900;
+  return Math.max(560, window.screen.availHeight - 4);
 }
 
 export async function applyOverlayMode(mode: OverlayMode): Promise<void> {
@@ -20,7 +23,6 @@ export async function applyOverlayMode(mode: OverlayMode): Promise<void> {
       typeof window !== "undefined" ? window.screen.availWidth : 1280;
 
     if (mode === "hidden") {
-      // Prefer Rust hide (tray-friendly)
       try {
         await invoke("hide_main_window");
       } catch {
@@ -29,8 +31,7 @@ export async function applyOverlayMode(mode: OverlayMode): Promise<void> {
       return;
     }
 
-    // expanded
-    await win.setSize(new LogicalSize(screenW, EXPANDED_H));
+    await win.setSize(new LogicalSize(screenW, expandedHeight()));
     await win.setPosition(new LogicalPosition(0, 0));
     await win.setAlwaysOnTop(true);
     try {
@@ -40,7 +41,7 @@ export async function applyOverlayMode(mode: OverlayMode): Promise<void> {
       await win.setFocus();
     }
   } catch {
-    // Browser / non-Tauri: no-op
+    /* browser */
   }
 }
 
@@ -52,7 +53,6 @@ export async function showFromTray(): Promise<void> {
   await applyOverlayMode("expanded");
 }
 
-/** Listen for tray “Show” so React can open the HUD phase. */
 export async function onTrayShowRequest(
   handler: () => void
 ): Promise<() => void> {

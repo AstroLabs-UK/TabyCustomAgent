@@ -20,6 +20,8 @@ export interface AppSettings {
     dwellGameMs: number;
     alwaysOnTop: boolean;
     faceReactionsEnabled: boolean;
+    /** Show face GIFs on-screen (no physical Taby required). */
+    localFaceEnabled: boolean;
     edgeZone: EdgeZone;
   };
   device: {
@@ -48,6 +50,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     dwellGameMs: 1000,
     alwaysOnTop: true,
     faceReactionsEnabled: true,
+    localFaceEnabled: true,
     edgeZone: { ...DEFAULT_EDGE_ZONE },
   },
   device: {
