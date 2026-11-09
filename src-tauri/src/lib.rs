@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
@@ -16,6 +16,10 @@ const TOP_EDGE_PX: i32 = 8;
 const EDGE_DWELL_MS: u64 = 450;
 /// Poll interval for global cursor (ms).
 const POLL_MS: u64 = 40;
+
+/// Half-band width as percent of screen width (stored * 100 for AtomicU32).
+/// center ≈ 18%, wide ≈ 35%, full = 50%.
+const DEFAULT_HALF_ZONE_PCT_X100: u32 = 1800; // 18.00%
 
 fn show_overlay(app: &tauri::AppHandle) {
     if let Some(win) = app.get_webview_window("main") {
@@ -53,8 +57,20 @@ fn estimate_screen_width(cursor_x: i32) -> i32 {
     (cursor_x + 200).max(1920)
 }
 
+fn half_zone_pct_from_area(area: &str) -> u32 {
+    match area {
+        "wide" => 3500, // 35%
+        "full" => 5000, // 50% → full edge
+        _ => 1800,      // center ~36% total band
+    }
+}
+
 /// Background thread: global cursor poll (works while window is hidden / in tray).
-fn start_edge_watcher(app: tauri::AppHandle, enabled: Arc<AtomicBool>) {
+fn start_edge_watcher(
+    app: tauri::AppHandle,
+    enabled: Arc<AtomicBool>,
+    half_zone_pct_x100: Arc<AtomicU32>,
+) {
     thread::spawn(move || {
         let mut edge_since: Option<Instant> = None;
         let mut fired_this_dwell = false;
@@ -76,12 +92,12 @@ fn start_edge_watcher(app: tauri::AppHandle, enabled: Arc<AtomicBool>) {
 
             let near_top = match Mouse::get_mouse_position() {
                 Mouse::Position { x, y } => {
-                    // Middle of the top edge only (~36% band centered)
                     let screen_w = estimate_screen_width(x);
                     let mid = screen_w / 2;
-                    let half_zone = (screen_w as f64 * 0.18) as i32;
-                    let in_center = (x - mid).abs() <= half_zone;
-                    y >= 0 && y <= TOP_EDGE_PX && in_center
+                    let pct = half_zone_pct_x100.load(Ordering::Relaxed) as f64 / 10000.0;
+                    let half_zone = (screen_w as f64 * pct) as i32;
+                    let in_zone = (x - mid).abs() <= half_zone;
+                    y >= 0 && y <= TOP_EDGE_PX && in_zone
                 }
                 Mouse::Error => false,
             };
@@ -122,18 +138,31 @@ fn set_edge_watch_enabled(enabled: bool, state: tauri::State<'_, Arc<AtomicBool>
     state.store(enabled, Ordering::Relaxed);
 }
 
+/// Set hover activation area: "center" | "wide" | "full".
+#[tauri::command]
+fn set_hover_activation_area(
+    area: String,
+    half_zone: tauri::State<'_, Arc<AtomicU32>>,
+) {
+    half_zone.store(half_zone_pct_from_area(area.as_str()), Ordering::Relaxed);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let edge_enabled = Arc::new(AtomicBool::new(true));
     let edge_for_setup = edge_enabled.clone();
+    let half_zone = Arc::new(AtomicU32::new(DEFAULT_HALF_ZONE_PCT_X100));
+    let half_zone_for_setup = half_zone.clone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(edge_enabled)
+        .manage(half_zone)
         .invoke_handler(tauri::generate_handler![
             show_main_window,
             hide_main_window,
-            set_edge_watch_enabled
+            set_edge_watch_enabled,
+            set_hover_activation_area
         ])
         .setup(move |app| {
             let show_i = MenuItem::with_id(app, "show", "Show overlay", true, None::<&str>)?;
@@ -171,7 +200,7 @@ pub fn run() {
                 });
             }
 
-            start_edge_watcher(app.handle().clone(), edge_for_setup);
+            start_edge_watcher(app.handle().clone(), edge_for_setup, half_zone_for_setup);
 
             Ok(())
         })
