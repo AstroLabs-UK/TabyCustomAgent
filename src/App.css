@@ -1652,34 +1652,73 @@ body,
   accent-color: #e98f78;
 }
 
-/* ─── Vertical stack: face · prompt · nav/module (equal gaps) ── */
+
+/* ─── Vertical stack: face · prompt · menu (sketch layout) ───── */
+
+html, body, #root {
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.overlay-root {
+  min-height: 100%;
+  background: transparent !important;
+  pointer-events: none;
+}
+
+.overlay-root .hud-hotzone,
+.overlay-root .hud-backdrop,
+.overlay-root .hud-stage,
+.overlay-root .hud-compact,
+.overlay-root .hud-nav-panel,
+.overlay-root .hud-module-panel,
+.overlay-root .local-face-panel {
+  pointer-events: auto;
+}
+
+.hud-backdrop--overlay {
+  position: fixed;
+  inset: 0;
+  background: transparent !important;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0;
+  z-index: 50;
+}
 
 .hud-stage--stack {
-  width: min(440px, calc(100vw - 24px));
-  height: calc(100vh - 12px);
-  max-height: calc(100vh - 12px);
+  width: 100%;
+  max-width: 400px;
+  height: 100%;
+  max-height: 100vh;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
-  gap: var(--hud-stack-gap, 12px);
-  padding-bottom: var(--hud-stack-gap, 12px);
+  gap: 12px;
+  padding: 8px 8px 12px;
   box-sizing: border-box;
+  background: transparent !important;
 }
 
+/* Jet-black face card — same black as GIF, minimal padding */
 .local-face-panel {
   flex: 1 1 auto;
-  min-height: 120px;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(22, 22, 26, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 22px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   overflow: hidden;
-  padding: 10px;
+  padding: 0;
 }
 
 .local-face-frame {
@@ -1689,49 +1728,48 @@ body,
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 14px;
-  background: #0a0a0c;
+  background: #000000;
+  border-radius: 22px;
 }
 
+/* On-screen: no device rotation — show GIF upright and fill the card */
 .local-face-gif {
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  /* firmware GIFs oriented for device — match prior -90deg if needed */
-  transform: rotate(-90deg);
-  transform-origin: center center;
+  object-position: center center;
+  background: #000000;
+  transform: none !important;
   user-select: none;
   pointer-events: none;
 }
 
 .local-face-missing {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.45);
   font-size: 0.85rem;
 }
 
 .hud-stage--stack .hud-compact {
   flex: 0 0 auto;
+  width: 100%;
 }
 
 .hud-stage--stack .hud-nav-panel,
 .hud-stage--stack .hud-module-panel {
   flex: 0 1 auto;
-  max-height: 42%;
+  width: 100%;
+  max-height: 38%;
   overflow: auto;
 }
 
 .hud-stage--stack .hud-module-card {
   max-height: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-
-/* Solid shell fallback (transparent window disabled for WebView2 stability) */
-html, body, #root {
-  background: #121214 !important;
-}
-.overlay-root {
-  background: #121214;
-  min-height: 100vh;
+/* Prompt bar full width of stack */
+.hud-stage--stack .hud-compact-inner,
+.hud-stage--stack .compact-prompt {
+  width: 100%;
 }
