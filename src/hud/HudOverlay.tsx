@@ -18,11 +18,9 @@ export type HudOverlayProps = {
   onFilesSelected?: (files: FileList | File[]) => void;
   onRemoveAttachment?: (id: string) => void;
   onVoiceClick?: () => void;
-  /** Active module content rendered under the prompt */
   modulePanel?: ReactNode;
   activeModuleId?: NavCellId | null;
   onCloseModule?: () => void;
-  /** On-screen face above prompt */
   localFace?: ReactNode;
 };
 
@@ -42,7 +40,7 @@ export function HudOverlay({
   onCloseModule,
   localFace,
 }: HudOverlayProps) {
-  const [phase, setPhase] = useState<HudPhase>("compact"); // first run visible
+  const [phase, setPhase] = useState<HudPhase>("compact");
   const hasDismissedOnce = useRef(false);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const timerRef = useRef<DwellTimer | null>(null);
@@ -63,23 +61,25 @@ export function HudOverlay({
     };
   }, [dwellMs, openCompact]);
 
-  // Expand when open; only hide to tray AFTER the user has dismissed once
+  const menuOrPanelOpen =
+    phase === "expanded" || Boolean(modulePanel) || Boolean(activeModuleId);
+  const visible = phase !== "hidden" || Boolean(activeModuleId);
+  const expanded = phase === "expanded";
+
+  // Window size: full-screen scrim whenever UI is up so outside clicks land here
   useEffect(() => {
-    const open =
-      phase !== "hidden" || Boolean(modulePanel) || Boolean(activeModuleId);
-    if (!open) {
+    if (!visible) {
       if (hasDismissedOnce.current) {
         void applyOverlayMode("hidden");
       } else {
-        // First launch: keep window visible even if phase flickers
-        void applyOverlayMode("expanded");
+        void applyOverlayMode("scrim");
       }
-    } else {
-      void applyOverlayMode("expanded");
+      return;
     }
-  }, [phase, modulePanel, activeModuleId]);
+    // Always scrim while visible — needed for click-outside
+    void applyOverlayMode("scrim");
+  }, [visible, menuOrPanelOpen, phase, modulePanel, activeModuleId]);
 
-  // Tray "Show" / left-click → open compact prompt
   useEffect(() => {
     let un: (() => void) | undefined;
     void onTrayShowRequest(() => {
@@ -98,20 +98,19 @@ export function HudOverlay({
   }, [onCloseModule]);
 
   const dismiss = useCallback(() => {
-    // Close module first, then menu, then HUD
+    // Outside / Esc: module → close module; expanded menu → compact; else → tray
     if (activeModuleId) {
       onCloseModule?.();
       return;
     }
     if (phase === "expanded") {
-      setPhase((p) => reduceHudPhase(p, { type: "escape" }));
+      setPhase("compact");
       return;
     }
     dismissAll();
   }, [activeModuleId, phase, onCloseModule, dismissAll]);
 
   const toggleNav = useCallback(() => {
-    // Four-box: close module panel so only nav dropdown shows
     onCloseModule?.();
     setPhase((p) => {
       if (p === "expanded") return "compact";
@@ -141,9 +140,12 @@ export function HudOverlay({
     timerRef.current?.pointerLeave();
   }
 
-  function handleBackdropClick() {
-    // Clicking off menu / panel closes (user request)
-    dismiss();
+  /** Click on the dim/empty area around the stack */
+  function handleBackdropPointer(e: React.MouseEvent | React.PointerEvent) {
+    if (e.target === e.currentTarget) {
+      e.preventDefault();
+      dismiss();
+    }
   }
 
   function handleSubmit(text: string, attachments: ChatAttachment[]) {
@@ -153,7 +155,6 @@ export function HudOverlay({
 
   function handleActivate(id: NavCellId) {
     const title = placeholderTitle(id);
-    // Collapse nav, keep prompt, open module panel under prompt
     setPhase((p) => reduceHudPhase(p, { type: "activate_route" }));
     onNavigate?.(id, title);
   }
@@ -161,9 +162,6 @@ export function HudOverlay({
   function handleCollapseNav() {
     setPhase((p) => reduceHudPhase(p, { type: "escape" }));
   }
-
-  const visible = phase !== "hidden" || Boolean(activeModuleId);
-  const expanded = phase === "expanded";
 
   return (
     <>
@@ -179,14 +177,14 @@ export function HudOverlay({
         <div
           className="hud-backdrop hud-backdrop--overlay"
           data-testid="hud-backdrop"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) handleBackdropClick();
-          }}
+          onMouseDown={handleBackdropPointer}
+          onClick={handleBackdropPointer}
         >
           <div
             className="hud-stage hud-stage--overlay hud-stage--stack"
             data-testid="hud-stage"
             onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {localFace}
             <CompactPrompt
@@ -212,7 +210,7 @@ export function HudOverlay({
                 {modulePanel}
               </div>
             )}
-            {lastPrompt && !modulePanel && (
+            {lastPrompt && !modulePanel && !expanded && (
               <p className="hud-last-prompt" data-testid="hud-last-prompt">
                 Last: {lastPrompt}
               </p>

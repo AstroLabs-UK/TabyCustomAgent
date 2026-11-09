@@ -1,10 +1,12 @@
 /**
- * Overlay window — only as wide as the HUD stack, top-centered.
+ * Overlay window chrome.
+ * - hidden → tray
+ * - compact → narrow top-centered HUD
+ * - scrim → full-screen transparent layer so click-outside works
  */
 
-export type OverlayMode = "hidden" | "expanded";
+export type OverlayMode = "hidden" | "compact" | "scrim";
 
-/** Match CSS stack width */
 const HUD_WIDTH = 400;
 const HUD_HEIGHT = 760;
 const TOP_MARGIN = 16;
@@ -33,10 +35,18 @@ export async function applyOverlayMode(mode: OverlayMode): Promise<void> {
       return;
     }
 
-    const h = Math.min(HUD_HEIGHT, Math.max(520, screenH - TOP_MARGIN - 48));
-    const x = Math.round((screenW - HUD_WIDTH) / 2);
-    await win.setSize(new LogicalSize(HUD_WIDTH, h));
-    await win.setPosition(new LogicalPosition(x, TOP_MARGIN));
+    if (mode === "scrim") {
+      // Full work-area so clicks beside the menu hit our transparent backdrop
+      await win.setSize(new LogicalSize(screenW, screenH));
+      await win.setPosition(new LogicalPosition(0, 0));
+    } else {
+      // compact — narrow stack only
+      const h = Math.min(HUD_HEIGHT, Math.max(520, screenH - TOP_MARGIN - 48));
+      const x = Math.round((screenW - HUD_WIDTH) / 2);
+      await win.setSize(new LogicalSize(HUD_WIDTH, h));
+      await win.setPosition(new LogicalPosition(x, TOP_MARGIN));
+    }
+
     await win.setAlwaysOnTop(true);
     try {
       await invoke("show_main_window");
@@ -54,7 +64,7 @@ export async function hideToTray(): Promise<void> {
 }
 
 export async function showFromTray(): Promise<void> {
-  await applyOverlayMode("expanded");
+  await applyOverlayMode("compact");
 }
 
 export async function onTrayShowRequest(
