@@ -709,7 +709,10 @@ function App() {
         activeModuleId={activeModule}
         onCloseModule={() => setActiveModule(null)}
         localFace={
-          settings.hud.localFaceEnabled !== false ? <LocalFacePanel /> : null
+          settings.hud.localFaceEnabled !== false &&
+          deviceState !== "connected" ? (
+            <LocalFacePanel />
+          ) : null
         }
       />
     </div>

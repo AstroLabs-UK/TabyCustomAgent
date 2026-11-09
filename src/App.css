@@ -1706,40 +1706,46 @@ html, body, #root {
   background: transparent !important;
 }
 
-/* Jet-black face card — same black as GIF, minimal padding */
+/* Jet-black face card — exact size of GIF after rotate -90° (456×280) */
 .local-face-panel {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: 0 0 auto;
+  width: 100%;
+  /* aspect-ratio set inline 456/280 — long edge on the bottom */
+  display: block;
   background: #000000;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: none;
   border-radius: 22px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   overflow: hidden;
   padding: 0;
+  container-type: size;
 }
 
 .local-face-frame {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   overflow: hidden;
   background: #000000;
-  border-radius: 22px;
 }
 
-/* On-screen: no device rotation — show GIF upright and fill the card */
+/*
+ * Raw GIF is 280×456 portrait. Rotate 90° left → 456×280 landscape.
+ * img width = panel height (280'), img height = panel width (456'),
+ * then rotate so it fills the panel with zero letterboxing.
+ */
 .local-face-gif {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100cqh;
+  height: 100cqw;
+  max-width: none;
+  max-height: none;
+  object-fit: fill;
   background: #000000;
-  transform: none !important;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  transform-origin: center center;
   user-select: none;
   pointer-events: none;
 }
@@ -1747,6 +1753,10 @@ html, body, #root {
 .local-face-missing {
   color: rgba(255, 255, 255, 0.45);
   font-size: 0.85rem;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
 }
 
 .hud-stage--stack .hud-compact {

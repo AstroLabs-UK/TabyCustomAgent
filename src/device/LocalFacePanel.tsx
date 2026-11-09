@@ -13,6 +13,12 @@ import {
   LOOPING_ANIMATION_IDS,
 } from "./animationMap";
 
+/** Raw firmware GIF size (portrait for the device screen). */
+export const FACE_NATIVE_W = 280;
+export const FACE_NATIVE_H = 456;
+/** After rotate -90°: long edge is horizontal (along the bottom). */
+export const FACE_DISPLAY_ASPECT = `${FACE_NATIVE_H} / ${FACE_NATIVE_W}`; // 456 / 280
+
 const IDLE_VARIANTS = ["idle_01_loop", "idle_02_loop"] as const;
 const IDLE_STILL_PAUSE_MS = 900;
 
@@ -29,7 +35,8 @@ function nextIdle(current: string): string {
 }
 
 /**
- * On-screen face (no Physical Taby). Dark rounded frame above the prompt.
+ * On-screen face: raw GIF rotated 90° left; box = rotated bounds (no letterbox).
+ * Hide this entirely when a Physical Taby is connected.
  */
 export function LocalFacePanel() {
   const [face, setFace] = useState<FaceDisplayState>(
@@ -46,7 +53,6 @@ export function LocalFacePanel() {
   const lastId = useRef("");
 
   useEffect(() => {
-    // Local face always treats itself as "connected" for animations
     publishFaceState({
       ...(readFaceState() ?? {
         animationId: "idle_01_loop",
@@ -110,7 +116,11 @@ export function LocalFacePanel() {
   const title = FACE_LABELS[id] ?? face.label ?? id;
 
   return (
-    <div className="local-face-panel" aria-label="Taby face">
+    <div
+      className="local-face-panel"
+      aria-label="Taby face"
+      style={{ aspectRatio: FACE_DISPLAY_ASPECT }}
+    >
       <div className="local-face-frame">
         {src ? (
           <img
@@ -118,6 +128,8 @@ export function LocalFacePanel() {
             src={src}
             alt={title}
             className="local-face-gif"
+            width={FACE_NATIVE_W}
+            height={FACE_NATIVE_H}
             draggable={false}
           />
         ) : (
