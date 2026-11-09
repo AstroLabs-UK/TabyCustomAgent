@@ -88,6 +88,19 @@ function App() {
     );
   }, []);
 
+  // Push hover activation area to the native edge watcher (when window is hidden).
+  useEffect(() => {
+    const area = settings.hud.hoverActivationArea ?? "center";
+    void (async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("set_hover_activation_area", { area });
+      } catch {
+        // Browser / non-Tauri: no-op
+      }
+    })();
+  }, [settings.hud.hoverActivationArea]);
+
   useEffect(() => {
     const id = window.setInterval(() => {
       const fired = tickReminders(Date.now());
@@ -449,6 +462,30 @@ function App() {
                   }
                 />
               </label>
+              <label className="field">
+                <span>How it opens — hover area</span>
+                <select
+                  value={settings.hud.hoverActivationArea ?? "center"}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      hud: {
+                        ...s.hud,
+                        hoverActivationArea: e.target
+                          .value as AppSettings["hud"]["hoverActivationArea"],
+                      },
+                    }))
+                  }
+                >
+                  <option value="center">Top center only</option>
+                  <option value="wide">Wide top band</option>
+                  <option value="full">Full top edge</option>
+                </select>
+                <span className="hint">
+                  Limits which part of the top edge opens Taby so browser tabs
+                  and other edge gestures are less likely to collide.
+                </span>
+              </label>
               <label className="field checkbox-field">
                 <span>Face reactions</span>
                 <input
@@ -661,6 +698,7 @@ function App() {
         connectionLabel={connectionLabel}
         connectionOk={connectionOk}
         showHotZoneHint={false}
+        hoverActivationArea={settings.hud.hoverActivationArea ?? "center"}
         pendingAttachments={pendingAttachments}
         onFilesSelected={(files) => {
           void addFiles(files);
