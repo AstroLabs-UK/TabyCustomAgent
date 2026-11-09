@@ -6,6 +6,7 @@ import { NavGrid } from "./NavGrid";
 import { placeholderTitle, type NavCellId } from "./navModel";
 import type { ChatAttachment } from "../chat/attachments";
 import { applyOverlayMode, onTrayShowRequest } from "../overlay/windowChrome";
+import type { HoverActivationArea } from "../settings/types";
 
 export type HudOverlayProps = {
   dwellMs: number;
@@ -14,6 +15,8 @@ export type HudOverlayProps = {
   onPromptSubmit?: (text: string, attachments: ChatAttachment[]) => void;
   onNavigate?: (id: NavCellId, title: string) => void;
   showHotZoneHint?: boolean;
+  /** Horizontal band for the invisible hotzone (default: center). */
+  hoverActivationArea?: HoverActivationArea;
   pendingAttachments?: ChatAttachment[];
   onFilesSelected?: (files: FileList | File[]) => void;
   onRemoveAttachment?: (id: string) => void;
@@ -33,6 +36,7 @@ export function HudOverlay({
   onPromptSubmit,
   onNavigate,
   showHotZoneHint = false,
+  hoverActivationArea = "center",
   pendingAttachments = [],
   onFilesSelected,
   onRemoveAttachment,
@@ -165,11 +169,19 @@ export function HudOverlay({
   const visible = phase !== "hidden" || Boolean(activeModuleId);
   const expanded = phase === "expanded";
 
+  const hotzoneAreaClass =
+    hoverActivationArea === "wide"
+      ? " hud-hotzone--wide"
+      : hoverActivationArea === "full"
+        ? " hud-hotzone--full"
+        : "";
+
   return (
     <>
       <div
-        className={`hud-hotzone${showHotZoneHint ? " hud-hotzone--hint" : ""}`}
+        className={`hud-hotzone${hotzoneAreaClass}${showHotZoneHint ? " hud-hotzone--hint" : ""}`}
         data-testid="hud-hotzone"
+        data-activation-area={hoverActivationArea}
         onPointerEnter={handleHotEnter}
         onPointerLeave={handleHotLeave}
         aria-hidden
