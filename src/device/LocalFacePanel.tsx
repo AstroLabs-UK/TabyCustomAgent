@@ -16,7 +16,7 @@ import {
 /** Raw firmware GIF size (portrait for the device screen). */
 export const FACE_NATIVE_W = 280;
 export const FACE_NATIVE_H = 456;
-/** After rotate -90°: long edge is horizontal (along the bottom). */
+/** After rotate +90°: long edge is horizontal (along the bottom). */
 export const FACE_DISPLAY_ASPECT = `${FACE_NATIVE_H} / ${FACE_NATIVE_W}`; // 456 / 280
 
 const IDLE_VARIANTS = ["idle_01_loop", "idle_02_loop"] as const;
@@ -35,7 +35,7 @@ function nextIdle(current: string): string {
 }
 
 /**
- * On-screen face: raw GIF rotated 90° left; box = rotated bounds (no letterbox).
+ * On-screen face: raw GIF rotated 90° right (clockwise from raw file); box = rotated bounds (no letterbox).
  * Hide this entirely when a Physical Taby is connected.
  */
 export function LocalFacePanel() {

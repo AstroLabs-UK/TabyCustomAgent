@@ -1706,7 +1706,7 @@ html, body, #root {
   background: transparent !important;
 }
 
-/* Jet-black face card — exact size of GIF after rotate -90° (456×280) */
+/* Jet-black face card — exact size of GIF after rotate +90° (456×280) */
 .local-face-panel {
   flex: 0 0 auto;
   width: 100%;
@@ -1730,7 +1730,7 @@ html, body, #root {
 }
 
 /*
- * Raw GIF is 280×456 portrait. Rotate 90° left → 456×280 landscape.
+ * Raw GIF is 280×456 portrait. Rotate 90° right (clockwise from raw) → 456×280 landscape.
  * img width = panel height (280'), img height = panel width (456'),
  * then rotate so it fills the panel with zero letterboxing.
  */
@@ -1744,7 +1744,7 @@ html, body, #root {
   max-height: none;
   object-fit: fill;
   background: #000000;
-  transform: translate(-50%, -50%) rotate(-90deg);
+  transform: translate(-50%, -50%) rotate(90deg); /* 90° right from raw GIF */
   transform-origin: center center;
   user-select: none;
   pointer-events: none;
