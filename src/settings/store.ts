@@ -48,7 +48,14 @@ export function loadSettings(): AppSettings {
       ...base,
       ...parsed,
       ai: { ...base.ai, ...parsed.ai, apiKey },
-      hud: { ...base.hud, ...parsed.hud },
+      hud: {
+        ...base.hud,
+        ...parsed.hud,
+        edgeZone: {
+          ...base.hud.edgeZone,
+          ...((parsed.hud as AppSettings["hud"])?.edgeZone ?? {}),
+        },
+      },
       device: { ...base.device, ...parsed.device },
     };
   } catch {

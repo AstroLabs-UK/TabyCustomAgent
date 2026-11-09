@@ -1582,3 +1582,72 @@ body,
   margin-top: 14px;
   gap: 12px;
 }
+
+/* ─── Activation zone visualizer ─────────────────────────────── */
+
+.zone-viz-root {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.zone-viz-haze {
+  position: absolute;
+  top: 0;
+  background: rgba(233, 143, 120, 0.45);
+  border: 2px solid rgba(233, 143, 120, 0.95);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 8px 28px rgba(233, 143, 120, 0.35);
+  cursor: grab;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  min-height: 8px;
+}
+
+.zone-viz-haze:active {
+  cursor: grabbing;
+}
+
+.zone-viz-label {
+  font-size: 0.7rem;
+  color: #1a1a1a;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.zone-viz-toolbar {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(42, 42, 46, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 10px 14px;
+  color: #f4f4f5;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.zone-viz-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.zone-viz-toolbar input[type="range"] {
+  width: 120px;
+  accent-color: #e98f78;
+}

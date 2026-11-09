@@ -45,6 +45,10 @@ import {
 import { tickReminders } from "./modules/reminders";
 import { invokeTool, SYSTEM_TOOL_PROMPT } from "./tools/registry";
 import { applyOverlayMode } from "./overlay/windowChrome";
+import { ZoneVisualizer } from "./overlay/ZoneVisualizer";
+import { pushEdgeZoneToRust, toRuntime, clampZone } from "./overlay/edgeZone";
+import type { EdgeZone } from "./settings/types";
+import { DEFAULT_EDGE_ZONE } from "./settings/types";
 
 function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
@@ -64,11 +68,21 @@ function App() {
   >([]);
   const [voicePhase, setVoicePhase] = useState<RecordingPhase>("idle");
   const [recSeconds, setRecSeconds] = useState(0);
+  const [zoneViz, setZoneViz] = useState(false);
 
   useEffect(() => {
-    setSettings(loadSettings());
+    const s = loadSettings();
+    setSettings(s);
     setChat(loadChatState());
     void applyOverlayMode("expanded"); // first paint; click-off → tray
+    void pushEdgeZoneToRust(
+      toRuntime(
+        s.hud.edgeZone ?? DEFAULT_EDGE_ZONE,
+        s.hud.dwellMs,
+        s.hud.dwellBrowserMs ?? 700,
+        s.hud.dwellGameMs ?? 1000
+      )
+    );
   }, []);
 
   useEffect(() => {
@@ -113,7 +127,25 @@ function App() {
   }
 
   function handleSave() {
-    saveSettings(settings);
+    const next = {
+      ...settings,
+      hud: {
+        ...settings.hud,
+        edgeZone: clampZone(settings.hud.edgeZone ?? DEFAULT_EDGE_ZONE),
+        dwellBrowserMs: settings.hud.dwellBrowserMs ?? 700,
+        dwellGameMs: settings.hud.dwellGameMs ?? 1000,
+      },
+    };
+    saveSettings(next);
+    setSettings(next);
+    void pushEdgeZoneToRust(
+      toRuntime(
+        next.hud.edgeZone,
+        next.hud.dwellMs,
+        next.hud.dwellBrowserMs,
+        next.hud.dwellGameMs
+      )
+    );
     setSaved(true);
   }
 
@@ -479,6 +511,76 @@ function App() {
                 </select>
               </label>
             </div>
+            <h3 style={{ marginTop: 16 }}>Activation zone</h3>
+            <p className="hint">
+              Top-center hot zone for opening from tray. Dwell: 0.5s apps · 0.7s
+              browsers · 1s games (auto-detected).
+            </p>
+            <div className="form-grid">
+              <label className="field">
+                <span>Productivity dwell (ms)</span>
+                <input
+                  type="number"
+                  min={200}
+                  max={3000}
+                  step={50}
+                  value={settings.hud.dwellMs}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      hud: { ...s.hud, dwellMs: Number(e.target.value) || 500 },
+                    }))
+                  }
+                />
+              </label>
+              <label className="field">
+                <span>Browser dwell (ms)</span>
+                <input
+                  type="number"
+                  min={200}
+                  max={3000}
+                  step={50}
+                  value={settings.hud.dwellBrowserMs ?? 700}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      hud: {
+                        ...s.hud,
+                        dwellBrowserMs: Number(e.target.value) || 700,
+                      },
+                    }))
+                  }
+                />
+              </label>
+              <label className="field">
+                <span>Game dwell (ms)</span>
+                <input
+                  type="number"
+                  min={200}
+                  max={5000}
+                  step={50}
+                  value={settings.hud.dwellGameMs ?? 1000}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      hud: {
+                        ...s.hud,
+                        dwellGameMs: Number(e.target.value) || 1000,
+                      },
+                    }))
+                  }
+                />
+              </label>
+            </div>
+            <div className="row-actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setZoneViz(true)}
+              >
+                Visualise / move zone
+              </button>
+            </div>
             <div className="row-actions">
               <button type="button" className="btn primary" onClick={handleSave}>
                 Save
@@ -500,6 +602,40 @@ function App() {
   const modulePanel = moduleInner ? (
     <div className="hud-module-card">{moduleInner}</div>
   ) : null;
+
+  if (zoneViz) {
+    return (
+      <div className="overlay-root">
+        <ZoneVisualizer
+          zone={settings.hud.edgeZone ?? DEFAULT_EDGE_ZONE}
+          onChange={(z) =>
+            setSettings((s) => ({
+              ...s,
+              hud: { ...s.hud, edgeZone: clampZone(z) },
+            }))
+          }
+          onDone={() => {
+            const z = clampZone(settings.hud.edgeZone ?? DEFAULT_EDGE_ZONE);
+            const next = {
+              ...settings,
+              hud: { ...settings.hud, edgeZone: z },
+            };
+            setSettings(next);
+            saveSettings(next);
+            void pushEdgeZoneToRust(
+              toRuntime(
+                z,
+                next.hud.dwellMs,
+                next.hud.dwellBrowserMs ?? 700,
+                next.hud.dwellGameMs ?? 1000
+              )
+            );
+            setZoneViz(false);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="overlay-root">

@@ -1,16 +1,11 @@
-# Global top-edge open (not window tracking)
+# Stage 15 — GO
 
-## How it works
-While the overlay is **hidden in the tray**, a **Rust background thread** polls the **global** mouse position (`mouse_position` crate / OS cursor API) every ~40ms.
+## Edge zone (this pass)
+- Real primary screen size (`GetSystemMetrics` on Windows)
+- Center computed from actual width × `centerFrac`
+- Single-open gate (no multi-window spam)
+- Dwell: 500ms productivity · 700ms browser · 1000ms game (foreground process heuristics)
+- Settings: dwell fields + **Visualise / move zone** (orange haze, drag, width/depth)
 
-If the cursor stays in the **top ~8 physical pixels** of the desktop for **~450ms**, the overlay is shown and `overlay://show` is emitted (same path as tray “Show”).
-
-This does **not** rely on a thin visible window or WebView hover — it works over any other app.
-
-## Still available
-- Tray icon left-click / “Show overlay”
-- Click-off / Escape → hide to tray
-- Close → tray (not quit)
-
-## Tune
-`TOP_EDGE_PX` and `EDGE_DWELL_MS` in `src-tauri/src/lib.rs`.
+## Next
+**Stage 16 — Transport hardening (BLE/USB/Wi‑Fi)**
