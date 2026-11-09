@@ -42,7 +42,8 @@ export function HudOverlay({
   onCloseModule,
   localFace,
 }: HudOverlayProps) {
-  const [phase, setPhase] = useState<HudPhase>("compact"); // first run visible; click-off → tray
+  const [phase, setPhase] = useState<HudPhase>("compact"); // first run visible
+  const hasDismissedOnce = useRef(false);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const timerRef = useRef<DwellTimer | null>(null);
 
@@ -62,11 +63,20 @@ export function HudOverlay({
     };
   }, [dwellMs, openCompact]);
 
-  // Expand OS window when HUD open; hide to tray when fully dismissed
+  // Expand when open; only hide to tray AFTER the user has dismissed once
   useEffect(() => {
     const open =
       phase !== "hidden" || Boolean(modulePanel) || Boolean(activeModuleId);
-    void applyOverlayMode(open ? "expanded" : "hidden");
+    if (!open) {
+      if (hasDismissedOnce.current) {
+        void applyOverlayMode("hidden");
+      } else {
+        // First launch: keep window visible even if phase flickers
+        void applyOverlayMode("expanded");
+      }
+    } else {
+      void applyOverlayMode("expanded");
+    }
   }, [phase, modulePanel, activeModuleId]);
 
   // Tray "Show" / left-click → open compact prompt
@@ -81,6 +91,7 @@ export function HudOverlay({
   }, []);
 
   const dismissAll = useCallback(() => {
+    hasDismissedOnce.current = true;
     setPhase("hidden");
     timerRef.current?.pointerLeave();
     onCloseModule?.();

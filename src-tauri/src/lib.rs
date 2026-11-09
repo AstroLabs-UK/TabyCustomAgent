@@ -1,7 +1,10 @@
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use mouse_position::mouse_position::Mouse;
 use serde::{Deserialize, Serialize};
@@ -13,12 +16,35 @@ use tauri::{
 
 const POLL_MS: u64 = 40;
 
+fn log_path() -> PathBuf {
+    // Windows: %LOCALAPPDATA%\CustomTabyAgent\startup.log
+    // Linux: ~/.local/share/CustomTabyAgent/startup.log
+    let base = std::env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local").join("share"))
+        })
+        .unwrap_or_else(|| PathBuf::from("."));
+    base.join("CustomTabyAgent")
+}
+
+fn startup_log(msg: &str) {
+    let dir = log_path();
+    let _ = fs::create_dir_all(&dir);
+    let path = dir.join("startup.log");
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let _ = writeln!(f, "[{ts}] {msg}");
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct EdgeZoneConfig {
-    /// 0–1 center along primary width
     center_frac: f64,
-    /// 0–1 width fraction
     width_frac: f64,
     depth_px: i32,
     dwell_productivity_ms: u64,
@@ -40,15 +66,21 @@ impl Default for EdgeZoneConfig {
 }
 
 fn show_overlay(app: &tauri::AppHandle) {
+    startup_log("show_overlay called");
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.show();
+        let _ = win.unminimize();
         let _ = win.set_always_on_top(true);
         let _ = win.set_focus();
+        startup_log("main window show/unminimize/focus ok");
+    } else {
+        startup_log("ERROR: main window missing in show_overlay");
     }
     let _ = app.emit("overlay://show", ());
 }
 
 fn hide_overlay(app: &tauri::AppHandle) {
+    startup_log("hide_overlay called");
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.hide();
     }
@@ -61,11 +93,9 @@ fn is_main_visible(app: &tauri::AppHandle) -> bool {
         .unwrap_or(false)
 }
 
-/// Primary monitor size in physical pixels.
 fn primary_screen_size() -> (i32, i32) {
     #[cfg(target_os = "windows")]
     {
-        // SM_CXSCREEN = 0, SM_CYSCREEN = 1
         extern "system" {
             fn GetSystemMetrics(index: i32) -> i32;
         }
@@ -75,13 +105,6 @@ fn primary_screen_size() -> (i32, i32) {
             if w > 0 && h > 0 {
                 return (w, h);
             }
-        }
-    }
-    #[cfg(target_os = "linux")]
-    {
-        // Best-effort; Wayland may not expose this the same way
-        if let Ok(w) = std::env::var("GDK_SCALE") {
-            let _ = w;
         }
     }
     (1920, 1080)
@@ -164,7 +187,6 @@ fn classify_foreground_windows() -> FgClass {
             return FgClass::Browser;
         }
 
-        // Lightweight game heuristics
         const GAME_HINTS: &[&str] = &[
             "steam",
             "epicgames",
@@ -180,15 +202,10 @@ fn classify_foreground_windows() -> FgClass {
             "roblox",
             "origin",
             "battle.net",
-            "ea-desktop",
         ];
-        if GAME_HINTS.iter().any(|h| path.contains(h) || name.contains(h)) {
-            return FgClass::Game;
-        }
-        // Fullscreen-ish exclusive often ends with these
-        if name.ends_with(".exe")
-            && (name.contains("game")
-                || name.contains("client") && path.contains("games"))
+        if GAME_HINTS
+            .iter()
+            .any(|h| path.contains(h) || name.contains(h))
         {
             return FgClass::Game;
         }
@@ -211,6 +228,7 @@ fn start_edge_watcher(
     opening: Arc<AtomicBool>,
 ) {
     thread::spawn(move || {
+        startup_log("edge watcher thread started");
         let mut edge_since: Option<Instant> = None;
         let mut fired_this_dwell = false;
 
@@ -222,7 +240,6 @@ fn start_edge_watcher(
                 continue;
             }
 
-            // Already visible or a show is in-flight → never open a second one
             if is_main_visible(&app) || opening.load(Ordering::SeqCst) {
                 edge_since = None;
                 fired_this_dwell = false;
@@ -230,7 +247,7 @@ fn start_edge_watcher(
             }
 
             let cfg = zone.lock().map(|g| g.clone()).unwrap_or_default();
-            let (screen_w, _screen_h) = primary_screen_size();
+            let (screen_w, _) = primary_screen_size();
             let depth = cfg.depth_px.max(4);
             let width = ((screen_w as f64) * cfg.width_frac.clamp(0.05, 1.0)).round() as i32;
             let center = ((screen_w as f64) * cfg.center_frac.clamp(0.0, 1.0)).round() as i32;
@@ -251,7 +268,6 @@ fn start_edge_watcher(
                     if let Some(t0) = edge_since {
                         let need = dwell_for(&cfg, classify_foreground());
                         if t0.elapsed() >= Duration::from_millis(need) {
-                            // Single-open gate
                             if opening
                                 .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
                                 .is_ok()
@@ -260,7 +276,6 @@ fn start_edge_watcher(
                                     show_overlay(&app);
                                 }
                                 fired_this_dwell = true;
-                                // Release gate after a short pause so we don't double-fire
                                 let opening2 = opening.clone();
                                 thread::spawn(move || {
                                     thread::sleep(Duration::from_millis(800));
@@ -308,8 +323,18 @@ fn get_primary_screen_size() -> (i32, i32) {
     primary_screen_size()
 }
 
+#[tauri::command]
+fn get_startup_log_path() -> String {
+    log_path()
+        .join("startup.log")
+        .to_string_lossy()
+        .to_string()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    startup_log("run() entered");
+
     let edge_enabled = Arc::new(AtomicBool::new(true));
     let edge_for_setup = edge_enabled.clone();
     let zone = Arc::new(Mutex::new(EdgeZoneConfig::default()));
@@ -317,7 +342,7 @@ pub fn run() {
     let opening = Arc::new(AtomicBool::new(false));
     let opening_for_setup = opening.clone();
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(edge_enabled)
         .manage(zone)
@@ -327,20 +352,36 @@ pub fn run() {
             hide_main_window,
             set_edge_watch_enabled,
             update_edge_zone,
-            get_primary_screen_size
+            get_primary_screen_size,
+            get_startup_log_path
         ])
         .setup(move |app| {
+            startup_log("setup() started");
+
+            // Ensure main window is visible at launch (do not depend on frontend)
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.show();
+                let _ = win.unminimize();
+                let _ = win.set_focus();
+                startup_log("main window forced visible in setup");
+            } else {
+                startup_log("ERROR: main window not found in setup");
+            }
+
+            // Tray — never panic if icon missing
             let show_i = MenuItem::with_id(app, "show", "Show overlay", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
 
-            let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+            let mut tray = TrayIconBuilder::new()
                 .menu(&menu)
                 .tooltip("Custom Taby Agent")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show_overlay(app),
-                    "quit" => app.exit(0),
+                    "quit" => {
+                        startup_log("quit from tray");
+                        app.exit(0);
+                    }
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
@@ -352,8 +393,22 @@ pub fn run() {
                     {
                         show_overlay(tray.app_handle());
                     }
-                })
-                .build(app)?;
+                });
+
+            if let Some(icon) = app.default_window_icon() {
+                tray = tray.icon(icon.clone());
+                startup_log("tray using default_window_icon");
+            } else {
+                startup_log("WARN: no default_window_icon — tray may be blank but app continues");
+            }
+
+            match tray.build(app) {
+                Ok(_) => startup_log("tray built ok"),
+                Err(e) => {
+                    // Do not abort the whole app if tray fails
+                    startup_log(&format!("WARN: tray build failed: {e}"));
+                }
+            }
 
             if let Some(win) = app.get_webview_window("main") {
                 let app_handle = app.handle().clone();
@@ -372,8 +427,12 @@ pub fn run() {
                 opening_for_setup,
             );
 
+            startup_log("setup() finished ok");
             Ok(())
-        })
+        });
+
+    startup_log("calling builder.run");
+    builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

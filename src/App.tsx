@@ -77,7 +77,7 @@ function App() {
     const s = loadSettings();
     setSettings(s);
     setChat(loadChatState());
-    void applyOverlayMode("expanded"); // first paint; click-off → tray
+    void applyOverlayMode("expanded"); // first paint — stay visible until user dismisses
     void pushEdgeZoneToRust(
       toRuntime(
         s.hud.edgeZone ?? DEFAULT_EDGE_ZONE,
