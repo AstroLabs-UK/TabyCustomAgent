@@ -14,6 +14,7 @@ import {
   openFaceWindow,
 } from "./device";
 import { completeStream, aiStatusLabel, aiStatusOk } from "./ai";
+import { PROVIDER_PRESETS } from "./ai/types";
 import { HudOverlay } from "./hud";
 import type { NavCellId } from "./hud";
 import {
@@ -149,6 +150,13 @@ function App() {
         next.hud.dwellGameMs
       )
     );
+    void import("@tauri-apps/api/core")
+      .then(({ invoke }) =>
+        invoke("set_diagnostics_enabled", {
+          enabled: next.hud.diagnosticsEnabled === true,
+        })
+      )
+      .catch(() => undefined);
     setSaved(true);
   }
 
@@ -469,16 +477,29 @@ function App() {
                 <span>Provider</span>
                 <select
                   value={settings.ai.provider}
-                  onChange={(e) =>
-                    updateAi(
-                      "provider",
-                      e.target.value as AppSettings["ai"]["provider"]
-                    )
-                  }
+                  onChange={(e) => {
+                    const provider = e.target
+                      .value as AppSettings["ai"]["provider"];
+                    const preset = PROVIDER_PRESETS[provider];
+                    setSettings((s) => ({
+                      ...s,
+                      ai: {
+                        ...s.ai,
+                        provider,
+                        baseUrl: preset?.baseUrl || s.ai.baseUrl,
+                        model: preset?.model || s.ai.model,
+                      },
+                    }));
+                    setSaved(false);
+                  }}
                 >
                   <option value="mock">Mock</option>
                   <option value="groq">Groq</option>
+                  <option value="openclaw">OpenClaw</option>
+                  <option value="hermes">Hermes</option>
+                  <option value="ollama">Ollama</option>
                   <option value="openai-compatible">OpenAI-compatible</option>
+                  <option value="custom">Custom endpoint</option>
                 </select>
               </label>
               <label className="field">

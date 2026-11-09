@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Custom Taby desktop agent \u2014 local-first AI HUD that drives Physical Taby over BLE",
+  "description": "Taby Custom Agent \u2014 local overlay agent",
   "scripts": {
     "dev": "node ./node_modules/vite/bin/vite.js",
     "build": "node ./node_modules/vite/bin/vite.js build",
@@ -44,5 +44,6 @@
     "@types/react-dom": "^19.1.6",
     "vitest": "^3.2.4",
     "jsdom": "^26.1.0"
-  }
+  },
+  "productName": "Taby Custom Agent"
 }

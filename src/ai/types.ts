@@ -1,6 +1,6 @@
 /**
- * AI provider interface — pluggable (Groq, OpenAI-compatible, mock).
- * Stage 0: interface + mock only. Live calls land in Stage 3+.
+ * AI provider interface — pluggable.
+ * Agent name in UX is always "Taby".
  */
 
 export type AiRole = "system" | "user" | "assistant" | "tool";
@@ -19,8 +19,18 @@ export interface AiStreamChunk {
   error?: string;
 }
 
+/** Built-in + future harnesses (all OpenAI-compatible HTTP unless mock). */
+export type AiProviderId =
+  | "mock"
+  | "groq"
+  | "openai-compatible"
+  | "openclaw"
+  | "hermes"
+  | "ollama"
+  | "custom";
+
 export interface AiProviderConfig {
-  provider: "groq" | "openai-compatible" | "mock";
+  provider: AiProviderId;
   apiKey: string;
   baseUrl: string;
   model: string;
@@ -35,6 +45,55 @@ export interface AiProvider {
     signal?: AbortSignal
   ): AsyncIterable<AiStreamChunk>;
 }
+
+/** Sensible defaults per provider id (user can override baseUrl/model). */
+export const PROVIDER_PRESETS: Record<
+  AiProviderId,
+  { label: string; baseUrl: string; model: string; needsKey: boolean }
+> = {
+  mock: {
+    label: "Mock (offline)",
+    baseUrl: "",
+    model: "mock",
+    needsKey: false,
+  },
+  groq: {
+    label: "Groq",
+    baseUrl: "https://api.groq.com/openai/v1",
+    model: "llama-3.3-70b-versatile",
+    needsKey: true,
+  },
+  "openai-compatible": {
+    label: "OpenAI-compatible",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+    needsKey: true,
+  },
+  openclaw: {
+    label: "OpenClaw",
+    baseUrl: "http://127.0.0.1:18789/v1",
+    model: "openclaw",
+    needsKey: false,
+  },
+  hermes: {
+    label: "Hermes",
+    baseUrl: "http://127.0.0.1:8080/v1",
+    model: "hermes",
+    needsKey: false,
+  },
+  ollama: {
+    label: "Ollama",
+    baseUrl: "http://127.0.0.1:11434/v1",
+    model: "llama3.2",
+    needsKey: false,
+  },
+  custom: {
+    label: "Custom endpoint",
+    baseUrl: "http://127.0.0.1:8000/v1",
+    model: "default",
+    needsKey: false,
+  },
+};
 
 export const DEFAULT_AI_CONFIG: AiProviderConfig = {
   provider: "mock",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Custom Taby Agent",
+  "productName": "Taby Custom Agent",
   "version": "0.1.0",
   "identifier": "com.taby.customagent",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Custom Taby Agent",
+        "title": "Taby Custom Agent",
         "width": 480,
         "height": 720,
         "decorations": false,

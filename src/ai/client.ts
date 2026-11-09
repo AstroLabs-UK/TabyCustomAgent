@@ -1,50 +1,40 @@
 import type { AiMessage, AiProvider, AiProviderConfig, AiStreamChunk } from "./types";
+import { PROVIDER_PRESETS } from "./types";
 import { mockAi } from "./mockProvider";
 import { liveAi } from "./openaiCompatibleProvider";
 
 export function selectProvider(config: AiProviderConfig): AiProvider {
   if (config.provider === "mock") return mockAi;
-  // groq + openai-compatible share the OpenAI-compatible HTTP client
+  // All other harnesses speak OpenAI-compatible chat completions
   return liveAi;
 }
 
-/** Validate before live calls. Returns error message or null if OK. */
 export function validateLiveConfig(config: AiProviderConfig): string | null {
   if (config.provider === "mock") return null;
-  if (!(config.apiKey ?? "").trim()) {
-    return "API key is required for live mode.";
+  const preset = PROVIDER_PRESETS[config.provider];
+  if (preset?.needsKey && !config.apiKey.trim()) {
+    return "API key required for this provider";
   }
-  if (!(config.baseUrl ?? "").trim()) {
-    return "API endpoint (base URL) is required.";
-  }
-  if (!(config.model ?? "").trim()) {
-    return "Model is required.";
-  }
+  if (!config.baseUrl.trim()) return "API endpoint required";
+  if (!config.model.trim()) return "Model required";
   return null;
 }
 
-/**
- * Human-readable connection status for HUD.
- * Never includes the API key.
- */
 export function aiStatusLabel(config: AiProviderConfig): string {
   if (config.provider === "mock") return "AI: mock (offline)";
-  if (!(config.apiKey ?? "").trim()) return "AI: key missing";
-  const host = safeHost(config.baseUrl);
-  return `AI: ${config.provider} · ${host}`;
+  let host = config.baseUrl;
+  try {
+    host = new URL(config.baseUrl).host;
+  } catch {
+    /* keep raw */
+  }
+  const label = PROVIDER_PRESETS[config.provider]?.label ?? config.provider;
+  return `AI: ${label} · ${host}`;
 }
 
 export function aiStatusOk(config: AiProviderConfig): boolean {
   if (config.provider === "mock") return true;
-  return Boolean((config.apiKey ?? "").trim() && (config.baseUrl ?? "").trim());
-}
-
-function safeHost(baseUrl: string): string {
-  try {
-    return new URL(baseUrl).host || "endpoint";
-  } catch {
-    return "endpoint";
-  }
+  return validateLiveConfig(config) === null;
 }
 
 export async function* completeStream(
@@ -59,10 +49,4 @@ export async function* completeStream(
   }
   const provider = selectProvider(config);
   yield* provider.completeStream(messages, config, signal);
-}
-
-/** Test helper: ensure a string does not contain the key (logging safety). */
-export function assertNoKeyInText(text: string, apiKey: string): boolean {
-  if (!apiKey) return true;
-  return !text.includes(apiKey);
 }

@@ -22,6 +22,8 @@ export interface AppSettings {
     faceReactionsEnabled: boolean;
     /** Show face GIFs on-screen (no physical Taby required). */
     localFaceEnabled: boolean;
+    /** Write startup/runtime logs to disk (optional). */
+    diagnosticsEnabled: boolean;
     edgeZone: EdgeZone;
   };
   device: {
@@ -51,6 +53,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     alwaysOnTop: true,
     faceReactionsEnabled: true,
     localFaceEnabled: true,
+    diagnosticsEnabled: false,
     edgeZone: { ...DEFAULT_EDGE_ZONE },
   },
   device: {
