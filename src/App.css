@@ -206,12 +206,25 @@ select:focus {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: min(420px, 70vw);
+  /* Default: top-center only (matches hoverActivationArea: center) */
+  width: min(420px, 36vw);
   height: 14px;
   z-index: 9000;
   cursor: default;
   /* invisible hit target; slightly taller for usability */
   background: transparent;
+}
+
+/* Wider center band (~70% of viewport) */
+.hud-hotzone--wide {
+  width: min(900px, 70vw);
+}
+
+/* Full top edge */
+.hud-hotzone--full {
+  left: 0;
+  transform: none;
+  width: 100%;
 }
 
 .hud-hotzone--hint {
