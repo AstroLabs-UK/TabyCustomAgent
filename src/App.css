@@ -1725,3 +1725,13 @@ body,
 .hud-stage--stack .hud-module-card {
   max-height: none;
 }
+
+
+/* Solid shell fallback (transparent window disabled for WebView2 stability) */
+html, body, #root {
+  background: #121214 !important;
+}
+.overlay-root {
+  background: #121214;
+  min-height: 100vh;
+}

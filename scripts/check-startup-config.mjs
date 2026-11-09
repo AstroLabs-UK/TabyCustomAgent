@@ -27,6 +27,7 @@ ok("visible !== false", win && win.visible !== false, JSON.stringify(win?.visibl
 ok("height >= 200", win && Number(win.height) >= 200, String(win?.height));
 ok("width >= 200", win && Number(win.width) >= 200, String(win?.width));
 ok("skipTaskbar is not true", win && win.skipTaskbar !== true);
+ok("not relying on transparent for first boot", win && win.transparent !== true, "transparent windows can fail WebView2 init on some PCs");
 
 const lib = readFileSync(join(root, "src-tauri/src/lib.rs"), "utf8");
 ok(

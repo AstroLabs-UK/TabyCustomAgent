@@ -23,5 +23,6 @@ mouse_position = "0.1.4"
 codegen-units = 1
 lto = true
 opt-level = 3
-panic = "abort"
+# Do NOT abort — we need panic hooks to write startup.log
+panic = "unwind"
 strip = true
