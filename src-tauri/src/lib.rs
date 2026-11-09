@@ -39,6 +39,20 @@ fn is_main_visible(app: &tauri::AppHandle) -> bool {
         .unwrap_or(false)
 }
 
+/// Rough primary width from cursor x (no Win32 dependency).
+fn estimate_screen_width(cursor_x: i32) -> i32 {
+    const CANDIDATES: [i32; 6] = [1280, 1366, 1440, 1600, 1920, 2560];
+    for w in CANDIDATES {
+        if cursor_x >= 0 && cursor_x < w {
+            return w;
+        }
+    }
+    if cursor_x < 0 {
+        return 1920;
+    }
+    (cursor_x + 200).max(1920)
+}
+
 /// Background thread: global cursor poll (works while window is hidden / in tray).
 fn start_edge_watcher(app: tauri::AppHandle, enabled: Arc<AtomicBool>) {
     thread::spawn(move || {
@@ -62,11 +76,10 @@ fn start_edge_watcher(app: tauri::AppHandle, enabled: Arc<AtomicBool>) {
 
             let near_top = match Mouse::get_mouse_position() {
                 Mouse::Position { x, y } => {
-                    // Middle of the top edge only (center ~36% of primary width estimate)
-                    // Width heuristic: use max(x*2, 1280) as rough span when x is mid-screen.
+                    // Middle of the top edge only (~36% band centered)
                     let screen_w = estimate_screen_width(x);
                     let mid = screen_w / 2;
-                    let half_zone = (screen_w as f64 * 0.18) as i32; // ~36% total band
+                    let half_zone = (screen_w as f64 * 0.18) as i32;
                     let in_center = (x - mid).abs() <= half_zone;
                     y >= 0 && y <= TOP_EDGE_PX && in_center
                 }
@@ -158,7 +171,6 @@ pub fn run() {
                 });
             }
 
-            // Global cursor edge watch — independent of window hit-testing
             start_edge_watcher(app.handle().clone(), edge_for_setup);
 
             Ok(())
