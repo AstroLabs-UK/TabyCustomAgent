@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { DwellTimer } from "./dwellTimer";
 import { reduceHudPhase, type HudPhase } from "./stateMachine";
 import { CompactPrompt } from "./CompactPrompt";
 import { NavGrid } from "./NavGrid";
 import { placeholderTitle, type NavCellId } from "./navModel";
 import type { ChatAttachment } from "../chat/attachments";
-import { applyOverlayMode, onTrayShowRequest } from "../overlay/windowChrome";
+import { applyOverlayMode, fitOverlayToContent, onTrayShowRequest } from "../overlay/windowChrome";
 
 export type HudOverlayProps = {
   dwellMs: number;
@@ -46,6 +46,8 @@ export function HudOverlay({
   const timerRef = useRef<DwellTimer | null>(null);
   /** Hide when pointer leaves stack without opening menu/module */
   const leaveHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [faceScale, setFaceScale] = useState(1);
 
   const openCompact = useCallback(() => {
     setPhase((p) => reduceHudPhase(p, { type: "dwell_complete" }));
@@ -74,19 +76,65 @@ export function HudOverlay({
   const visible = phase !== "hidden" || Boolean(activeModuleId);
   const expanded = phase === "expanded";
 
-  // Window size: compact HUD when prompt/face only; scrim only with menu/module open
+  // Show / hide window; height is fit-to-content via ResizeObserver below
   useEffect(() => {
     if (!visible) {
-      // Always hide to tray — never leave an empty fullscreen ghost window
       void applyOverlayMode("hidden");
       return;
     }
-    if (menuOrPanelOpen) {
-      void applyOverlayMode("scrim");
-    } else {
-      void applyOverlayMode("compact");
-    }
-  }, [visible, menuOrPanelOpen, phase, modulePanel, activeModuleId]);
+    void applyOverlayMode("compact");
+  }, [visible]);
+
+  // Dynamic height + shrink face when stack would overflow the screen
+  useLayoutEffect(() => {
+    if (!visible) return;
+    const el = stageRef.current;
+    if (!el) return;
+
+    let raf = 0;
+    const measure = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const maxH =
+          (typeof window !== "undefined" ? window.screen.availHeight : 900) -
+          36;
+        const faceEl = el.querySelector(
+          ".local-face-panel"
+        ) as HTMLElement | null;
+
+        // Measure with current scale
+        const total = el.getBoundingClientRect().height;
+        const faceH = faceEl?.getBoundingClientRect().height ?? 0;
+        const rest = Math.max(0, total - faceH);
+
+        let nextScale = 1;
+        if (faceH > 0 && rest + faceH > maxH) {
+          const room = Math.max(80, maxH - rest);
+          // scale relative to unscaled face height
+          const unscaledFace = faceH / Math.max(faceScale, 0.01);
+          nextScale = Math.min(1, Math.max(0.45, room / unscaledFace));
+        }
+        if (Math.abs(nextScale - faceScale) > 0.02) {
+          setFaceScale(nextScale);
+          return; // remeasure after scale applies
+        }
+
+        const h = el.getBoundingClientRect().height;
+        const w = Math.max(el.getBoundingClientRect().width, 320);
+        void fitOverlayToContent(h, w + 24);
+      });
+    };
+
+    measure();
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [visible, phase, modulePanel, activeModuleId, localFace, expanded, faceScale]);
 
   useEffect(() => {
     let un: (() => void) | undefined;
@@ -215,8 +263,10 @@ export function HudOverlay({
           onClick={handleBackdropPointer}
         >
           <div
+            ref={stageRef}
             className="hud-stage hud-stage--overlay hud-stage--stack"
             data-testid="hud-stage"
+            style={{ ["--face-scale" as string]: String(faceScale) }}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             onPointerEnter={handleStagePointerEnter}

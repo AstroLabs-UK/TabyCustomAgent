@@ -14,8 +14,8 @@
       {
         "label": "main",
         "title": "Taby Custom Agent",
-        "width": 440,
-        "height": 720,
+        "width": 420,
+        "height": 320,
         "decorations": false,
         "transparent": false,
         "alwaysOnTop": true,

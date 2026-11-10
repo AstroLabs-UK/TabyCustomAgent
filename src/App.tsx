@@ -50,7 +50,7 @@ import { invokeToolAsync, SYSTEM_TOOL_PROMPT } from "./tools/registry";
 import { LocalFacePanel } from "./device/LocalFacePanel";
 import { typewriterToward } from "./chat/typewriter";
 import { publishFaceState, FACE_LABELS } from "./device/faceBus";
-import { applyOverlayMode } from "./overlay/windowChrome";
+import { applyOverlayMode, fitOverlayToContent } from "./overlay/windowChrome";
 import { OnboardingWizard } from "./onboarding/OnboardingWizard";
 import { SettingsPanel } from "./settings/SettingsPanel";
 import { ZoneVisualizer } from "./overlay/ZoneVisualizer";
@@ -473,6 +473,15 @@ function App() {
   useEffect(() => {
     if (showOnboarding || zoneViz) {
       void applyOverlayMode("compact");
+      // Fit after paint
+      const id = window.setTimeout(() => {
+        const root = document.querySelector(".overlay-root") as HTMLElement | null;
+        if (root) {
+          const r = root.getBoundingClientRect();
+          void fitOverlayToContent(r.height, Math.max(r.width, 400));
+        }
+      }, 50);
+      return () => clearTimeout(id);
     }
   }, [showOnboarding, zoneViz]);
 

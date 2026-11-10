@@ -1,4 +1,82 @@
 
+/* Dynamic shell — height follows content, not full screen */
+html, body, #root {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #16161a !important;
+  color: #f4f4f5 !important;
+  overflow: hidden !important;
+}
+
+.overlay-root,
+.overlay-root.tc-shell {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  background: #16161a !important;
+  color: #f4f4f5 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding: 10px 10px 12px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+}
+
+.hud-backdrop--overlay {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  background: transparent !important;
+  display: flex !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.hud-stage--stack {
+  width: 100% !important;
+  max-width: 400px !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 0 auto !important;
+  overflow: visible !important;
+  gap: 10px !important;
+}
+
+.local-face-panel {
+  width: calc(100% * var(--face-scale, 1)) !important;
+  max-width: 400px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  flex: 0 0 auto !important;
+  transition: width 0.15s ease;
+}
+
+.hud-module-panel,
+.hud-nav-panel,
+.hud-module-card,
+.tc-chat,
+.tc-settings {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.tc-chat__thread,
+.tc-settings__sections,
+.chat-thread {
+  max-height: min(220px, 28vh) !important;
+  overflow-y: auto !important;
+}
+
+
 /* CRITICAL: solid shell so Windows WebView always paints content */
 html, body, #root {
   width: 100% !important;

@@ -1,50 +1,68 @@
 /**
- * Overlay window chrome — always a compact solid HUD window (no fullscreen ghost).
+ * Overlay window chrome — size to content, top-centred.
  */
 
 export type OverlayMode = "hidden" | "compact" | "scrim" | "expanded";
 
-const HUD_WIDTH = 440;
-const HUD_HEIGHT = 720;
-const TOP_MARGIN = 16;
+const HUD_WIDTH = 420;
+const TOP_MARGIN = 12;
+const PAD = 16;
 
 async function getWin() {
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
   return getCurrentWindow();
 }
 
-export async function applyOverlayMode(mode: OverlayMode): Promise<void> {
+function screenBudget(): { w: number; h: number; maxH: number } {
+  const w = typeof window !== "undefined" ? window.screen.availWidth : 1280;
+  const h = typeof window !== "undefined" ? window.screen.availHeight : 900;
+  return { w, h, maxH: Math.max(200, h - TOP_MARGIN - 24) };
+}
+
+/** Resize the window to hug content height (clamped to screen). */
+export async function fitOverlayToContent(
+  contentHeightPx: number,
+  contentWidthPx = HUD_WIDTH
+): Promise<void> {
   try {
     const { LogicalSize, LogicalPosition } = await import("@tauri-apps/api/dpi");
     const { invoke } = await import("@tauri-apps/api/core");
     const win = await getWin();
-    const screenW =
-      typeof window !== "undefined" ? window.screen.availWidth : 1280;
-    const screenH =
-      typeof window !== "undefined" ? window.screen.availHeight : 900;
-
-    if (mode === "hidden") {
-      try {
-        await invoke("hide_main_window");
-      } catch {
-        await win.hide();
-      }
-      return;
-    }
-
-    // compact / scrim / expanded → same visible HUD-sized window (no fullscreen)
-    const h = Math.min(HUD_HEIGHT, Math.max(520, screenH - TOP_MARGIN - 48));
-    const x = Math.round((screenW - HUD_WIDTH) / 2);
-    await win.setSize(new LogicalSize(HUD_WIDTH, h));
+    const { w: screenW, maxH } = screenBudget();
+    const width = Math.min(Math.max(contentWidthPx, 280), screenW - 24);
+    const height = Math.min(
+      Math.max(Math.ceil(contentHeightPx) + PAD, 100),
+      maxH
+    );
+    const x = Math.round((screenW - width) / 2);
+    await win.setSize(new LogicalSize(width, height));
     await win.setPosition(new LogicalPosition(x, TOP_MARGIN));
     await win.setAlwaysOnTop(true);
-
     try {
       await invoke("show_main_window");
     } catch {
       await win.show();
-      await win.setFocus();
     }
+  } catch {
+    /* browser */
+  }
+}
+
+export async function applyOverlayMode(mode: OverlayMode): Promise<void> {
+  try {
+    if (mode === "hidden") {
+      const { invoke } = await import("@tauri-apps/api/core");
+      try {
+        await invoke("hide_main_window");
+      } catch {
+        const win = await getWin();
+        await win.hide();
+      }
+      return;
+    }
+    // Show with a modest default; HudOverlay will fit-to-content next frame
+    const { maxH } = screenBudget();
+    await fitOverlayToContent(Math.min(360, maxH * 0.45));
   } catch {
     /* browser */
   }
@@ -71,3 +89,5 @@ export async function onTrayShowRequest(
     return () => undefined;
   }
 }
+
+export { TOP_MARGIN, HUD_WIDTH };
