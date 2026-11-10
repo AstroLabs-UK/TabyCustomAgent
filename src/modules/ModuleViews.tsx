@@ -9,9 +9,13 @@ import {
 import {
   dismissReminder,
   loadReminders,
+  loadWellnessToggles,
   scheduleReminder,
-  tickReminders,
+  setWellnessEnabled,
+  setWellnessInterval,
+  tickAllReminders,
   type Reminder,
+  type WellnessToggle,
 } from "./reminders";
 import {
   createNote,
@@ -112,16 +116,20 @@ export function TasksView() {
 
 export function RemindersView() {
   const [list, setList] = useState<Reminder[]>(() => loadReminders());
+  const [wellness, setWellness] = useState<WellnessToggle[]>(() =>
+    loadWellnessToggles()
+  );
   const [title, setTitle] = useState("");
   const [minutes, setMinutes] = useState(30);
 
   function refresh() {
     setList(loadReminders());
+    setWellness(loadWellnessToggles());
   }
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      const fired = tickReminders(Date.now());
+      const fired = tickAllReminders(Date.now());
       if (fired.length) refresh();
     }, 5000);
     return () => clearInterval(id);
@@ -130,6 +138,63 @@ export function RemindersView() {
   return (
     <section className="card module-card">
       <h2>Reminders</h2>
+
+      <div className="wellness-toggles">
+        <h3 className="wellness-heading">Defaults</h3>
+        <p className="hint wellness-hint">
+          Toggle gentle recurring nudges. Adjust how often each one fires.
+        </p>
+        <ul className="module-list wellness-list">
+          {wellness.map((t) => {
+            const minutes = Math.round(t.intervalMs / 60_000);
+            return (
+              <li key={t.id} className="wellness-row">
+                <div className="wellness-main">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={t.enabled}
+                    aria-label={`${t.title} ${t.enabled ? "on" : "off"}`}
+                    className={`wellness-switch${t.enabled ? " is-on" : ""}`}
+                    onClick={() => {
+                      setWellness(setWellnessEnabled(t.id, !t.enabled));
+                    }}
+                  >
+                    <span className="wellness-switch-thumb" />
+                  </button>
+                  <div className="wellness-copy">
+                    <strong>{t.title}</strong>
+                    {t.enabled && t.nextFireAt != null && (
+                      <em className="meta">
+                        {" "}
+                        · next {new Date(t.nextFireAt).toLocaleTimeString()}
+                      </em>
+                    )}
+                  </div>
+                </div>
+                <label className="wellness-interval">
+                  <span className="meta">Every</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={24 * 60}
+                    step={1}
+                    value={minutes}
+                    disabled={!t.enabled}
+                    onChange={(e) => {
+                      const m = Math.max(1, Number(e.target.value) || 1);
+                      setWellness(setWellnessInterval(t.id, m * 60_000));
+                    }}
+                    aria-label={`${t.title} interval in minutes`}
+                  />
+                  <span className="meta">min</span>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
       <form
         className="module-row"
         onSubmit={(e) => {
@@ -181,7 +246,7 @@ export function RemindersView() {
             </li>
           ))}
         {!list.filter((r) => !r.dismissed).length && (
-          <li className="hint">No reminders.</li>
+          <li className="hint">No one-shot reminders.</li>
         )}
       </ul>
     </section>
