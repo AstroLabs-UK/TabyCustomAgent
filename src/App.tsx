@@ -359,7 +359,7 @@ function App() {
   const deviceOk = deviceState === "connected";
   const aiOk = aiStatusOk(settings.ai);
   const connectionOk = deviceOk || aiOk;
-  const connectionLabel = `${deviceOk ? "Device connected" : "Device offline"} · ${aiStatusLabel(settings.ai)}`;
+  const connectionLabel = `${deviceOk ? "Taby connected" : "Taby offline"} · ${aiStatusLabel(settings.ai)}`;
 
   function renderModule() {
     if (!activeModule) return null;

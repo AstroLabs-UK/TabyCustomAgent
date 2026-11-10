@@ -19,7 +19,6 @@ const LOG_RETENTION_SECS: u64 = 30 * 24 * 60 * 60; // 30 days
 
 /// Distinct managed state types (Tauri keys by TypeId — cannot manage two Arc<AtomicBool>).
 struct EdgeWatchEnabled(Arc<AtomicBool>);
-struct OpeningGate(Arc<AtomicBool>);
 struct DiagnosticsEnabled(Arc<AtomicBool>);
 struct ZoneState(Arc<Mutex<EdgeZoneConfig>>);
 
@@ -371,7 +370,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(EdgeWatchEnabled(edge_enabled))
-        .manage(OpeningGate(opening))
         .manage(DiagnosticsEnabled(diagnostics))
         .manage(ZoneState(zone))
         .invoke_handler(tauri::generate_handler![

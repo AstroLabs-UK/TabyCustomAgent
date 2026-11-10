@@ -21,15 +21,23 @@ export function validateLiveConfig(config: AiProviderConfig): string | null {
 }
 
 export function aiStatusLabel(config: AiProviderConfig): string {
-  if (config.provider === "mock") return "AI: mock (offline)";
-  let host = config.baseUrl;
-  try {
-    host = new URL(config.baseUrl).host;
-  } catch {
-    /* keep raw */
-  }
+  if (config.provider === "mock") return "AI: mock";
   const label = PROVIDER_PRESETS[config.provider]?.label ?? config.provider;
-  return `AI: ${label} · ${host}`;
+  let host = "";
+  try {
+    const u = new URL(config.baseUrl);
+    host = u.hostname;
+    if (host === "127.0.0.1" || host === "localhost") {
+      // Avoid ugly "localhost:port" in the HUD chrome
+      return `AI: ${label}`;
+    }
+    if (u.port && u.port !== "80" && u.port !== "443") {
+      host = `${host}`;
+    }
+  } catch {
+    host = "";
+  }
+  return host ? `AI: ${label} · ${host}` : `AI: ${label}`;
 }
 
 export function aiStatusOk(config: AiProviderConfig): boolean {
