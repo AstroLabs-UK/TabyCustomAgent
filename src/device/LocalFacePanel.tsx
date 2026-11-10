@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   FACE_LABELS,
   publishFaceState,
@@ -21,6 +21,19 @@ export const FACE_DISPLAY_ASPECT = `${FACE_NATIVE_H} / ${FACE_NATIVE_W}`; // 456
 
 const IDLE_VARIANTS = ["idle_01_loop", "idle_02_loop"] as const;
 const IDLE_STILL_PAUSE_MS = 900;
+
+/** Cute one-shots when the user wiggles the mouse over Taby */
+const CUTE_WIGGLE = [
+  "blush",
+  "love_01",
+  "wow",
+  "thumbs_up",
+  "yeah",
+  "flower_grow",
+  "trophy",
+] as const;
+const WIGGLE_DISTANCE_PX = 90;
+const WIGGLE_COOLDOWN_MS = 4500;
 
 function gifSrc(id: string, token: number): string | null {
   const base = gifForAnimationId(id);
@@ -51,6 +64,9 @@ export function LocalFacePanel() {
   const [token, setToken] = useState(0);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastId = useRef("");
+  const lastPointer = useRef<{ x: number; y: number } | null>(null);
+  const travel = useRef(0);
+  const lastWiggleAt = useRef(0);
 
   useEffect(() => {
     publishFaceState({
@@ -111,6 +127,37 @@ export function LocalFacePanel() {
     };
   }, [face.animationId, token]);
 
+  function handleFacePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const prev = lastPointer.current;
+    lastPointer.current = { x: e.clientX, y: e.clientY };
+    if (!prev) return;
+    const dx = e.clientX - prev.x;
+    const dy = e.clientY - prev.y;
+    travel.current += Math.hypot(dx, dy);
+    const now = Date.now();
+    if (
+      travel.current >= WIGGLE_DISTANCE_PX &&
+      now - lastWiggleAt.current >= WIGGLE_COOLDOWN_MS
+    ) {
+      travel.current = 0;
+      lastWiggleAt.current = now;
+      const pick =
+        CUTE_WIGGLE[Math.floor(Math.random() * CUTE_WIGGLE.length)];
+      publishFaceState({
+        animationId: pick,
+        label: FACE_LABELS[pick] ?? pick,
+        at: now,
+        connected: true,
+        force: true,
+      });
+    }
+  }
+
+  function handleFacePointerLeave() {
+    lastPointer.current = null;
+    travel.current = 0;
+  }
+
   const id = face.animationId || "idle_01_loop";
   const src = gifSrc(id, token);
   const title = FACE_LABELS[id] ?? face.label ?? id;
@@ -120,6 +167,12 @@ export function LocalFacePanel() {
       className="local-face-panel"
       aria-label="Taby face"
       style={{ aspectRatio: FACE_DISPLAY_ASPECT }}
+      onPointerMove={handleFacePointerMove}
+      onPointerLeave={handleFacePointerLeave}
+      onPointerEnter={() => {
+        travel.current = 0;
+        lastPointer.current = null;
+      }}
     >
       <div className="local-face-frame">
         {src ? (

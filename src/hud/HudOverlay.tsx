@@ -44,6 +44,8 @@ export function HudOverlay({
   const hasDismissedOnce = useRef(false);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const timerRef = useRef<DwellTimer | null>(null);
+  /** Hide when pointer leaves stack without opening menu/module */
+  const leaveHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openCompact = useCallback(() => {
     setPhase((p) => reduceHudPhase(p, { type: "dwell_complete" }));
@@ -60,6 +62,12 @@ export function HudOverlay({
       timerRef.current = null;
     };
   }, [dwellMs, openCompact]);
+
+  useEffect(() => {
+    return () => {
+      if (leaveHideTimer.current) clearTimeout(leaveHideTimer.current);
+    };
+  }, []);
 
   const menuOrPanelOpen =
     phase === "expanded" || Boolean(modulePanel) || Boolean(activeModuleId);
@@ -163,6 +171,32 @@ export function HudOverlay({
     setPhase((p) => reduceHudPhase(p, { type: "escape" }));
   }
 
+  function clearLeaveHide() {
+    if (leaveHideTimer.current) {
+      clearTimeout(leaveHideTimer.current);
+      leaveHideTimer.current = null;
+    }
+  }
+
+  function handleStagePointerEnter() {
+    clearLeaveHide();
+  }
+
+  function handleStagePointerLeave() {
+    // Keep open if nav or a module panel is up
+    if (phase === "expanded" || activeModuleId || modulePanel) {
+      clearLeaveHide();
+      return;
+    }
+    clearLeaveHide();
+    leaveHideTimer.current = setTimeout(() => {
+      hasDismissedOnce.current = true;
+      setPhase("hidden");
+      timerRef.current?.pointerLeave();
+      onCloseModule?.();
+    }, 450);
+  }
+
   return (
     <>
       <div
@@ -185,6 +219,8 @@ export function HudOverlay({
             data-testid="hud-stage"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
+            onPointerEnter={handleStagePointerEnter}
+            onPointerLeave={handleStagePointerLeave}
           >
             {localFace}
             <CompactPrompt

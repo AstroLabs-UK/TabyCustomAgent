@@ -1715,6 +1715,7 @@ html, body, #root {
 
 /* Jet-black face card — exact size of GIF after rotate 270° CW (456×280) */
 .local-face-panel {
+  cursor: pointer;
   flex: 0 0 auto;
   width: 100%;
   /* aspect-ratio set inline 456/280 — long edge on the bottom */
