@@ -206,12 +206,25 @@ select:focus {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: min(420px, 70vw);
+  /* Default: top-center only (matches hoverActivationArea: center) */
+  width: min(420px, 36vw);
   height: 14px;
   z-index: 9000;
   cursor: default;
   /* invisible hit target; slightly taller for usability */
   background: transparent;
+}
+
+/* Wider center band (~70% of viewport) */
+.hud-hotzone--wide {
+  width: min(900px, 70vw);
+}
+
+/* Full top edge */
+.hud-hotzone--full {
+  left: 0;
+  transform: none;
+  width: 100%;
 }
 
 .hud-hotzone--hint {
@@ -2491,17 +2504,109 @@ html, body, #root {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.5) !important;
 }
-
-/* Firmware A4 → PNG nav icons */
-.nav-a4-icon {
-  display: block;
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-  opacity: 0.95;
-  pointer-events: none;
+/* Wellness / default reminder toggles */
+.wellness-toggles {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+.wellness-heading {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.wellness-hint {
+  margin: 0 0 0.65rem;
+}
+.wellness-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.wellness-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.wellness-main {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.wellness-copy {
+  min-width: 0;
+  line-height: 1.3;
+}
+.wellness-copy strong {
+  font-weight: 600;
 }
 
-.hud-nav-cell--official .nav-a4-icon {
-  filter: none;
+/* Themed switch (slider) */
+.wellness-switch {
+  position: relative;
+  width: 2.6rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.wellness-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.45rem - 6px);
+  height: calc(1.45rem - 6px);
+  border-radius: 50%;
+  background: #f2f2f2;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.wellness-switch.is-on {
+  background: var(--color-accent, #f3b7a5);
+  border-color: color-mix(in srgb, var(--color-accent, #f3b7a5) 70%, #000);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent, #f3b7a5) 35%, transparent);
+}
+.wellness-switch.is-on .wellness-switch-thumb {
+  transform: translateX(1.15rem);
+  background: #fff;
+}
+.wellness-switch:focus-visible {
+  outline: 2px solid var(--color-accent, #f3b7a5);
+  outline-offset: 2px;
+}
+
+.wellness-interval {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.wellness-interval input[type="number"] {
+  width: 3.6rem;
+  padding: 0.28rem 0.4rem;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  background: color-mix(in srgb, #000 25%, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: center;
+}
+.wellness-interval input[type="number"]:disabled {
+  opacity: 0.45;
+}
+.wellness-interval input[type="number"]:focus {
+  outline: none;
+  border-color: var(--color-accent, #f3b7a5);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent, #f3b7a5) 40%, transparent);
 }

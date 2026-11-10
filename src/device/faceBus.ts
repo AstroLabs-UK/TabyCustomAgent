@@ -34,6 +34,9 @@ export const FACE_LABELS: Record<string, string> = {
   task_completed: "Done!",
   hello_disappointed: "Oops",
   idle_02_loop: "Idle",
+  drink_water: "Drink water",
+  posture_check: "Sit up straight",
+  break_start: "Take a break",
   READY: "Ready",
 };
 
