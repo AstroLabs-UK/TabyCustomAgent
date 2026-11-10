@@ -56,6 +56,10 @@ export const DEFAULT_ANIMATION_MAP: AnimationMap = {
     "thinking",
     "error",
     "idle",
+    // Wellness / break cues (stock firmware IDs; mock maps to closest GIF)
+    "drink_water",
+    "posture_check",
+    "break_start",
   ],
   durationsMs: {
     listening_loop: 2667,
@@ -70,6 +74,9 @@ export const DEFAULT_ANIMATION_MAP: AnimationMap = {
     hello_disappointed: 4250,
     idle_01_loop: 9042,
     idle_02_loop: 7875,
+    drink_water: 2800,
+    posture_check: 2800,
+    break_start: 2500,
   },
   /** Extra dwell after done/error one-shot before idle */
   postDoneDelayMs: 1200,
@@ -92,6 +99,10 @@ export const FACE_GIF_BY_ID: Record<string, string> = {
   thinking: "/taby-faces/working_loop.gif",
   error: "/taby-faces/disappointed.gif",
   idle: "/taby-faces/idle_01_loop.gif",
+  // No dedicated wellness GIFs in the mock pack — reuse closest one-shots
+  drink_water: "/taby-faces/confirmation.gif",
+  posture_check: "/taby-faces/thumbs_up.gif",
+  break_start: "/taby-faces/yeah.gif",
 };
 
 export const LOOPING_ANIMATION_IDS = new Set([

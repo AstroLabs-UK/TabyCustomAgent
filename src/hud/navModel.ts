@@ -46,6 +46,17 @@ export const NAV_GRID: readonly NavCell[] = LABELS.map((item, index) => {
 
 export const NAV_ROWS = Math.ceil(NAV_GRID.length / NAV_COLS);
 
+
+/** Soft row washes (aligned with --pastel-row-* in tokens.css). */
+export const ROW_PASTELS: readonly string[] = [
+  "#dce6f5",
+  "#fce4ec",
+  "#ffe9db",
+  "#e8f2ec",
+  "#ede7f6",
+];
+
+
 export function cellAt(row: number, col: number): NavCell | undefined {
   return NAV_GRID.find((c) => c.row === row && c.col === col);
 }
