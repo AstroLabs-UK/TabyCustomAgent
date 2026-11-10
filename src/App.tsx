@@ -255,7 +255,8 @@ function App() {
         ];
 
         let acc = "";
-        const toolNotes: string[] = [];
+        /** True if play_reaction ran — skip "done" face so the reaction can finish. */
+        let playedForcedReaction = false;
         let display = "";
         const tw = typewriterToward("", (visible) => {
           display = visible;
@@ -266,7 +267,7 @@ function App() {
           );
           persistChat({ conversations, activeId: conv.id });
         }, { cps: 56 });
-        // Stay on working_loop while typing
+        // Stay on working_loop while typing (unless a reaction is forced mid-stream)
         if (settings.hud.faceReactionsEnabled !== false) {
           publishFaceState({
             animationId: "working_loop",
@@ -279,12 +280,19 @@ function App() {
           if (chunk.type === "tool_call" && chunk.toolName) {
             const args = (chunk.toolArgs ?? {}) as Record<string, unknown>;
             const result = await invokeToolAsync(chunk.toolName, args);
-            const detail =
-              result.data !== undefined
-                ? `${result.message} | data=${JSON.stringify(result.data).slice(0, 800)}`
-                : result.message;
-            toolNotes.push(`${chunk.toolName}: ${detail}`);
-            setStatusLine(result.message);
+            // Never dump raw tool / JSON into the chat transcript
+            if (
+              chunk.toolName === "play_reaction" ||
+              chunk.toolName === "list_reactions"
+            ) {
+              playedForcedReaction = true;
+              // Keep status quiet for reactions — face is the feedback
+              setStatusLine("");
+            } else if (result.ok) {
+              setStatusLine(result.message);
+            } else {
+              setStatusLine(result.message);
+            }
           }
           if (chunk.type === "token" && chunk.text) {
             acc += chunk.text;
@@ -305,18 +313,17 @@ function App() {
             return;
           }
         }
-        // Finish typewriter to full text before done animation
-        if (toolNotes.length) {
-          acc =
-            (acc ? acc + "\n\n" : "") +
-            toolNotes.map((n) => `✓ ${n}`).join("\n");
-        }
+        // Finish typewriter — no tool ✓ lines in the bubble
         tw.sync(acc);
-        // Allow typewriter to catch up
-        await new Promise((r) => setTimeout(r, Math.min(4000, Math.max(80, acc.length * 12))));
+        await new Promise((r) =>
+          setTimeout(r, Math.min(4000, Math.max(80, acc.length * 12)))
+        );
         tw.flush();
         tw.dispose();
-        await orch.onTurnDone();
+        // Only play "done" if we did not force a reaction animation
+        if (!playedForcedReaction) {
+          await orch.onTurnDone();
+        }
         setStatusLine("");
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
