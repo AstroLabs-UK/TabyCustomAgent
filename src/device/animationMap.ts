@@ -345,3 +345,26 @@ export const REACTION_PRESETS: Record<string, string[]> = {
   thinking: ["working_loop", "searching_loop", "busy_loop"],
   greeting: ["startup", "yeah", "thumbs_up"],
 };
+
+
+export type ValidateAnimationResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: string };
+
+/** Accept catalog ids and common aliases used by the mock/device layer. */
+export function validateAnimationId(
+  map: AnimationMap,
+  animationId: string
+): ValidateAnimationResult {
+  const id = (animationId || "").trim();
+  if (!id) return { ok: false, reason: "empty animation id" };
+  if (map.knownAnimationIds.includes(id)) return { ok: true, id };
+  if (gifForAnimationId(id)) return { ok: true, id };
+  // Allow aliases that resolve via gifForAnimationId path map
+  const aliases = ["idle", "thinking", "done", "yes"];
+  if (aliases.includes(id)) return { ok: true, id };
+  return {
+    ok: false,
+    reason: `unsupported animation: ${id}`,
+  };
+}
