@@ -4,6 +4,8 @@
  */
 
 export type FaceDisplayState = {
+  /** When true, UI should interrupt and switch immediately */
+  force?: boolean;
   animationId: string;
   label: string;
   at: number;

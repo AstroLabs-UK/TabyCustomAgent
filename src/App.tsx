@@ -47,6 +47,11 @@ import {
   tickAllReminders,
 } from "./modules/reminders";
 import { invokeTool, SYSTEM_TOOL_PROMPT } from "./tools/registry";
+import { tickReminders } from "./modules/reminders";
+import { invokeToolAsync, SYSTEM_TOOL_PROMPT } from "./tools/registry";
+import { LocalFacePanel } from "./device/LocalFacePanel";
+import { typewriterToward } from "./chat/typewriter";
+import { publishFaceState, FACE_LABELS } from "./device/faceBus";
 import { applyOverlayMode } from "./overlay/windowChrome";
 
 function App() {
@@ -228,8 +233,12 @@ function App() {
         for await (const chunk of completeStream(forApi, settings.ai)) {
           if (chunk.type === "tool_call" && chunk.toolName) {
             const args = (chunk.toolArgs ?? {}) as Record<string, unknown>;
-            const result = invokeTool(chunk.toolName, args);
-            toolNotes.push(`${chunk.toolName}: ${result.message}`);
+            const result = await invokeToolAsync(chunk.toolName, args);
+            const detail =
+              result.data !== undefined
+                ? `${result.message} | data=${JSON.stringify(result.data).slice(0, 800)}`
+                : result.message;
+            toolNotes.push(`${chunk.toolName}: ${detail}`);
             setStatusLine(result.message);
           }
           if (chunk.type === "token" && chunk.text) {
@@ -542,6 +551,62 @@ function App() {
   const modulePanel = moduleInner ? (
     <div className="hud-module-card">{moduleInner}</div>
   ) : null;
+
+  const showOnboarding =
+    forceOnboarding || settings.onboardingCompleted === false;
+
+  if (showOnboarding && !zoneViz) {
+    return (
+      <div className="overlay-root">
+        <OnboardingWizard
+          settings={settings}
+          setSettings={setSettings}
+          onFinish={(next) => {
+            saveSettings(next);
+            setSettings(next);
+            setForceOnboarding(false);
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (zoneViz) {
+    return (
+      <div className="overlay-root">
+        <ZoneVisualizer
+          zone={settings.hud.edgeZone ?? DEFAULT_EDGE_ZONE}
+          dwellMs={settings.hud.dwellMs}
+          dwellBrowserMs={settings.hud.dwellBrowserMs ?? 700}
+          dwellGameMs={settings.hud.dwellGameMs ?? 1000}
+          onChange={(z) =>
+            setSettings((s) => ({
+              ...s,
+              hud: { ...s.hud, edgeZone: clampZone(z) },
+            }))
+          }
+          onDone={() => {
+            const z = clampZone(settings.hud.edgeZone ?? DEFAULT_EDGE_ZONE);
+            const next = {
+              ...settings,
+              hud: { ...settings.hud, edgeZone: z },
+            };
+            setSettings(next);
+            saveSettings(next);
+            void pushEdgeZoneToRust(
+              toRuntime(
+                z,
+                next.hud.dwellMs,
+                next.hud.dwellBrowserMs ?? 700,
+                next.hud.dwellGameMs ?? 1000
+              )
+            );
+            setZoneViz(false);
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="overlay-root">

@@ -1,13 +1,6 @@
 /**
- * Animation ID map + validation (Stage 5–6).
- * IDs match Physical Taby stock firmware (amoled-1.64 pack).
- *
- * Chat turn mapping:
- *   listening → listening_loop (+alts random)
- *   busy / AI loading → working_loop (ff09215b) primary
- *   done → confirmation (+alts), then idle after duration + extra delay
- *   error → disappointed (+alts), then idle
- *   idle → idle_01_loop (+alts)
+ * Animation map generated from firmware-taby amoled-1.64 catalog.json
+ * Pack version: 0.3.3
  */
 
 export type FaceState = "listening" | "busy" | "done" | "error" | "idle";
@@ -15,16 +8,103 @@ export type FaceState = "listening" | "busy" | "done" | "error" | "idle";
 export type AnimationMap = {
   version: number;
   states: Record<FaceState, string>;
-  /** Optional alternates per state — resolveAnimation may pick at random */
   alternatives: Partial<Record<FaceState, string[]>>;
   knownAnimationIds: string[];
   durationsMs: Record<string, number>;
-  /** Extra hold after one-shot before idle (ms) */
   postDoneDelayMs: number;
 };
 
+export const CATALOG_ANIMATION_IDS = [
+  "angry_01_loop",
+  "angry_02_loop",
+  "basketball_dunk",
+  "basketball_throw",
+  "blush",
+  "boxing",
+  "break_start",
+  "busy_loop",
+  "calendar_in",
+  "calendar_loop",
+  "circle",
+  "confirmation",
+  "copy_paste",
+  "creating_task_loop",
+  "delete_01",
+  "disappointed",
+  "drink_water",
+  "f1_car",
+  "fishing_long",
+  "fishing_short",
+  "flower_grow",
+  "hello_annoyed",
+  "idle_01_loop",
+  "calm_idle_01_f000",
+  "calm_idle_01_to_f137",
+  "calm_idle_01_f137",
+  "calm_idle_01_f137_to_f177",
+  "calm_idle_01_f177",
+  "calm_idle_01_f177_to_f216",
+  "calm_idle_01_f216",
+  "calm_work_low_f000",
+  "calm_work_medium_f000",
+  "calm_work_high_f000",
+  "idle_02_loop",
+  "idle_variation_loop",
+  "listening_in",
+  "listening_loop",
+  "listening_music_loop",
+  "lockin",
+  "love_01",
+  "perfect_day_01",
+  "perfect_day_01_simple",
+  "perfect_day_02",
+  "perfect_day_03",
+  "posture_check",
+  "relaxing_01_loop",
+  "relaxing_couch_in",
+  "relaxing_couch_loop",
+  "sleeping_loop",
+  "square",
+  "startup",
+  "stretching",
+  "talking_default_loop",
+  "task_completed",
+  "task_created",
+  "task_page",
+  "thumbs_up",
+  "trophy",
+  "turn_off_reddit",
+  "turn_off_scroll",
+  "turn_off_tv",
+  "waiting_01",
+  "working_in",
+  "working_loop",
+  "working_laptop_in",
+  "working_laptop_loop",
+  "working_laptop_bored_loop",
+  "working_laptop_excited_loop",
+  "working_laptop_normal_loop",
+  "workspaces_in",
+  "workspaces_loop",
+  "wow",
+  "codex_in",
+  "codex_loop",
+  "day_planned",
+  "hello_disappointed",
+  "claude_in",
+  "claude_loop",
+  "taby_response_ready_in",
+  "taby_response_ready_loop",
+  "yeah",
+  "no",
+  "review",
+  "searching_loop"
+] as const;
+
+export type CatalogAnimationId = (typeof CATALOG_ANIMATION_IDS)[number] | string;
+
 export const DEFAULT_ANIMATION_MAP: AnimationMap = {
-  version: 5,
+  version: 10,
   states: {
     listening: "listening_loop",
     busy: "working_loop",
@@ -33,11 +113,11 @@ export const DEFAULT_ANIMATION_MAP: AnimationMap = {
     idle: "idle_01_loop",
   },
   alternatives: {
-    listening: ["listening_loop", "listening_in"],
-    busy: ["working_loop"], // keep AI load on working_loop; room for more later
-    done: ["confirmation", "thumbs_up", "yeah", "task_completed"],
-    error: ["disappointed", "hello_disappointed"],
-    idle: ["idle_01_loop", "idle_02_loop"],
+    listening: ["listening_loop", "listening_in", "listening_music_loop"],
+    busy: ["working_loop", "working_laptop_loop", "searching_loop", "creating_task_loop"],
+    done: ["confirmation", "thumbs_up", "yeah", "task_completed", "trophy", "wow"],
+    error: ["disappointed", "hello_disappointed", "no", "angry_01_loop"],
+    idle: ["idle_01_loop", "idle_02_loop", "idle_variation_loop", "relaxing_01_loop"],
   },
   knownAnimationIds: [
     "listening_loop",
@@ -105,17 +185,18 @@ export const FACE_GIF_BY_ID: Record<string, string> = {
   break_start: "/taby-faces/yeah.gif",
 };
 
-export const LOOPING_ANIMATION_IDS = new Set([
-  "listening_loop",
-  "busy_loop",
-  "working_loop",
-  "idle_01_loop",
-  "idle_02_loop",
-  "searching_loop",
-]);
-
+/** Prefer semantic name; hash path also shipped under public/taby-faces/a/ */
 export function gifForAnimationId(id: string): string | null {
-  return FACE_GIF_BY_ID[id] ?? null;
+  if (GIF_PATHS[id]) return GIF_PATHS[id];
+  // alias common shorts
+  const aliases: Record<string, string> = {
+    idle: "idle_01_loop",
+    thinking: "working_loop",
+    done: "confirmation",
+    yes: "thumbs_up",
+  };
+  const a = aliases[id];
+  return a && GIF_PATHS[a] ? GIF_PATHS[a] : null;
 }
 
 export function durationMsFor(
@@ -126,92 +207,53 @@ export function durationMsFor(
   return map.durationsMs[id] ?? fallback;
 }
 
-function pickRandom(ids: string[]): string {
-  return ids[Math.floor(Math.random() * ids.length)] ?? ids[0];
-}
+export const LOOPING_ANIMATION_IDS = new Set<string>(["angry_01_loop", "angry_02_loop", "busy_loop", "calendar_loop", "calm_idle_01_f000", "calm_idle_01_f137", "calm_idle_01_f177", "calm_idle_01_f216", "calm_work_high_f000", "calm_work_low_f000", "calm_work_medium_f000", "claude_loop", "codex_loop", "creating_task_loop", "idle_01_loop", "idle_02_loop", "idle_variation_loop", "listening_loop", "listening_music_loop", "relaxing_01_loop", "relaxing_couch_loop", "searching_loop", "sleeping_loop", "taby_response_ready_loop", "talking_default_loop", "working_laptop_bored_loop", "working_laptop_excited_loop", "working_laptop_loop", "working_laptop_normal_loop", "working_loop", "workspaces_loop"]);
 
-/**
- * Resolve state → animation id.
- * When alternatives exist, picks randomly among primary + alts (unique).
- */
 export function resolveAnimation(
   map: AnimationMap,
-  state: FaceState,
-  opts?: { random?: boolean }
-): { id: string; known: boolean } {
-  const primary = map.states[state];
-  const alts = map.alternatives[state] ?? [];
-  const pool = Array.from(new Set([primary, ...alts].filter(Boolean)));
-  const useRandom = opts?.random !== false && pool.length > 1;
-  const id = useRandom ? pickRandom(pool) : primary;
-  return { id, known: isKnownAnimationId(map, id) };
+  state: FaceState
+): { id: string } {
+  const alts = map.alternatives[state];
+  if (alts && alts.length > 1 && Math.random() < 0.35) {
+    return { id: alts[Math.floor(Math.random() * alts.length)] };
+  }
+  if (alts && alts.length === 1) return { id: alts[0] };
+  return { id: map.states[state] };
 }
 
-export function parseAnimationMap(raw: unknown): AnimationMap {
-  if (!raw || typeof raw !== "object") {
-    throw new Error("animation map must be an object");
-  }
-  const obj = raw as Record<string, unknown>;
-  const states = obj.states;
-  if (!states || typeof states !== "object") {
-    throw new Error("animation map missing states");
-  }
-  const known = Array.isArray(obj.knownAnimationIds)
-    ? (obj.knownAnimationIds as string[]).filter((x) => typeof x === "string")
-    : [...DEFAULT_ANIMATION_MAP.knownAnimationIds];
+/** Fun reactions the AI can force */
+export const REACTION_PRESETS: Record<string, string[]> = {
+  celebrate: ["yeah", "trophy", "task_completed", "basketball_dunk", "wow"],
+  happy: ["yeah", "thumbs_up", "blush", "love_01"],
+  sad: ["disappointed", "hello_disappointed", "no"],
+  angry: ["angry_01_loop", "angry_02_loop", "hello_annoyed"],
+  focus: ["lockin", "turn_off_scroll", "turn_off_reddit", "turn_off_tv"],
+  fun: ["f1_car", "basketball_dunk", "basketball_throw", "boxing", "fishing_short"],
+  chill: ["relaxing_couch_loop", "drink_water", "stretching", "sleeping_loop"],
+  love: ["love_01", "blush", "flower_grow"],
+  thinking: ["working_loop", "searching_loop", "busy_loop"],
+  greeting: ["startup", "yeah", "thumbs_up"],
+};
 
-  const s = states as Record<string, string>;
-  const required: FaceState[] = ["listening", "busy", "done", "error", "idle"];
-  for (const key of required) {
-    if (typeof s[key] !== "string" || !s[key]) {
-      throw new Error(`animation map missing state: ${key}`);
-    }
-  }
 
-  const durationsMs = {
-    ...DEFAULT_ANIMATION_MAP.durationsMs,
-    ...((obj.durationsMs as Record<string, number>) || {}),
-  };
+export type ValidateAnimationResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: string };
 
-  const alternatives = {
-    ...DEFAULT_ANIMATION_MAP.alternatives,
-    ...((obj.alternatives as AnimationMap["alternatives"]) || {}),
-  };
-
-  const postDoneDelayMs =
-    typeof obj.postDoneDelayMs === "number"
-      ? obj.postDoneDelayMs
-      : DEFAULT_ANIMATION_MAP.postDoneDelayMs;
-
-  return {
-    version: typeof obj.version === "number" ? obj.version : 1,
-    states: {
-      listening: s.listening,
-      busy: s.busy,
-      done: s.done,
-      error: s.error,
-      idle: s.idle,
-    },
-    alternatives,
-    knownAnimationIds: known,
-    durationsMs,
-    postDoneDelayMs,
-  };
-}
-
-export function isKnownAnimationId(map: AnimationMap, id: string): boolean {
-  return map.knownAnimationIds.includes(id);
-}
-
+/** Accept catalog ids and common aliases used by the mock/device layer. */
 export function validateAnimationId(
   map: AnimationMap,
-  id: string
-): { ok: true } | { ok: false; reason: string } {
-  if (!id || !id.trim()) {
-    return { ok: false, reason: "empty animation id" };
-  }
-  if (!isKnownAnimationId(map, id)) {
-    return { ok: false, reason: `unsupported animation id: ${id}` };
-  }
-  return { ok: true };
+  animationId: string
+): ValidateAnimationResult {
+  const id = (animationId || "").trim();
+  if (!id) return { ok: false, reason: "empty animation id" };
+  if (map.knownAnimationIds.includes(id)) return { ok: true, id };
+  if (gifForAnimationId(id)) return { ok: true, id };
+  // Allow aliases that resolve via gifForAnimationId path map
+  const aliases = ["idle", "thinking", "done", "yes"];
+  if (aliases.includes(id)) return { ok: true, id };
+  return {
+    ok: false,
+    reason: `unsupported animation: ${id}`,
+  };
 }

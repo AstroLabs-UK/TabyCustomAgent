@@ -50,6 +50,33 @@ export function deleteTask(id: string): void {
   saveTasks(loadTasks().filter((t) => t.id !== id));
 }
 
+export function updateTask(
+  id: string,
+  patch: Partial<Pick<Task, "title" | "dueDate" | "done">>
+): Task | null {
+  const all = loadTasks();
+  const i = all.findIndex((t) => t.id === id);
+  if (i < 0) return null;
+  const next = { ...all[i], ...patch };
+  if (patch.done === true) next.completedAt = Date.now();
+  if (patch.done === false) next.completedAt = undefined;
+  all[i] = next;
+  saveTasks(all);
+  return all[i];
+}
+
+export function findTask(query: string): Task | undefined {
+  const q = query.trim().toLowerCase();
+  if (!q) return undefined;
+  const all = loadTasks();
+  return (
+    all.find((t) => t.id === query) ||
+    all.find((t) => t.title.toLowerCase() === q) ||
+    all.find((t) => t.title.toLowerCase().includes(q))
+  );
+}
+
+
 export function tasksDueOn(date = new Date()): Task[] {
   const k = dayKey(date);
   return loadTasks().filter((t) => !t.done && t.dueDate === k);

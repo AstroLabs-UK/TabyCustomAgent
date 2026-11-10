@@ -48,6 +48,47 @@ export class MockAiProvider implements AiProvider {
 function detectTool(
   text: string
 ): { name: string; args: Record<string, unknown> } | null {
+  if (/react|do a (fun )?reaction|show (me )?(the )?(f1|car|dunk|trophy)|celebrate|cheer/i.test(text)) {
+    if (/f1|car|race|sprint/i.test(text)) return { name: "play_reaction", args: { animationId: "f1_car", force: true } };
+    if (/dunk|basketball/i.test(text)) return { name: "play_reaction", args: { animationId: "basketball_dunk", force: true } };
+    if (/trophy|win/i.test(text)) return { name: "play_reaction", args: { animationId: "trophy", force: true } };
+    const mood = /sad|disappoint/i.test(text) ? "sad" : /angry|mad/i.test(text) ? "angry" : /love|heart/i.test(text) ? "love" : /focus|lock/i.test(text) ? "focus" : /chill|relax/i.test(text) ? "chill" : "fun";
+    return { name: "play_reaction", args: { mood, force: true } };
+  }
+  if (/what.*(today|on my plate)|today.?s overview|overview today/i.test(text)) {
+    return { name: "get_today_overview", args: {} };
+  }
+  if (/list tasks|show tasks|my tasks|what tasks/i.test(text)) {
+    const filter = /open|todo/.test(text) ? "open" : /done|completed/.test(text) ? "done" : /today/.test(text) ? "today" : "all";
+    return { name: "list_tasks", args: { filter } };
+  }
+  if (/list notes|show notes|my notes/i.test(text)) {
+    return { name: "list_notes", args: {} };
+  }
+  if (/search notes|find note/i.test(text)) {
+    const query = text.replace(/.*(?:search notes|find note)\s*(for)?\s*/i, "").trim() || "";
+    return { name: "search_notes", args: { query } };
+  }
+  if (/list reminders|show reminders|my reminders/i.test(text)) {
+    return { name: "list_reminders", args: {} };
+  }
+  if (/list habits|show habits|my habits/i.test(text)) {
+    return { name: "list_habits", args: {} };
+  }
+  if (/what time|current time|what day|today.?s date/i.test(text)) {
+    return { name: "get_current_time", args: {} };
+  }
+  if (/search (the )?web|look up|google\b|web search/i.test(text)) {
+    const query = text.replace(/.*(?:search (?:the )?web|look up|google|web search)\s*/i, "").trim();
+    return { name: "web_search", args: { query: query || text } };
+  }
+  if (/wikipedia|wiki\b/i.test(text)) {
+    const title = text.replace(/.*(?:wikipedia|wiki)\s*/i, "").trim();
+    return { name: "wiki_summary", args: { title } };
+  }
+  if (/update task|edit task|rename task|change task/i.test(text)) {
+    return { name: "update_task", args: { title: text.replace(/update task|edit task|rename task|change task/gi, "").trim() } };
+  }
   const addTask = text.match(
     /(?:add|create|new)\s+task(?:\s+to)?\s+(.+?)(?:\s+due\s+(\d{4}-\d{2}-\d{2}))?$/i
   ) || text.match(/remind me to (.+)/i);

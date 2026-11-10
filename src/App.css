@@ -2610,3 +2610,331 @@ html, body, #root {
   border-color: var(--color-accent, #f3b7a5);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent, #f3b7a5) 40%, transparent);
 }
+
+/* ─── Settings (search + sections) ───────────────────────────── */
+
+.tc-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #f4f4f5;
+  max-height: min(520px, calc(100vh - 200px));
+}
+
+.tc-settings__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fafafa;
+}
+
+.tc-settings__sub {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.tc-settings__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tc-settings__search input {
+  flex: 1;
+  border: none !important;
+  background: transparent !important;
+  color: #f4f4f5 !important;
+  font: inherit;
+  outline: none;
+  padding: 0 !important;
+}
+
+.tc-settings__search-icon {
+  opacity: 0.5;
+}
+
+.tc-settings__sections {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(233, 143, 120, 0.5) transparent;
+}
+
+.tc-settings__sec {
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.tc-settings__sec-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #f4f4f5;
+  padding: 12px 14px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.tc-settings__sec-title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.tc-settings__sec-blurb {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin-top: 2px;
+}
+
+.tc-settings__chev {
+  opacity: 0.5;
+}
+
+.tc-settings__body {
+  padding: 0 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tc-settings__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tc-settings__field input,
+.tc-settings__field select {
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  color: #f4f4f5 !important;
+  padding: 9px 11px !important;
+  font: inherit;
+}
+
+.tc-settings__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: #f4f4f5;
+  cursor: pointer;
+}
+
+.tc-settings__hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.4;
+}
+
+.tc-settings__row3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.tc-settings__btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4f4f5;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.tc-settings__btn--accent {
+  background: rgba(233, 143, 120, 0.25);
+  border-color: rgba(233, 143, 120, 0.45);
+  color: #ffe8e0;
+}
+
+.tc-settings__foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.tc-settings__saved {
+  font-size: 0.8rem;
+  color: rgba(233, 143, 120, 0.95);
+}
+
+.tc-settings__empty {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.9rem;
+  padding: 12px;
+}
+
+/* ─── Onboarding ─────────────────────────────────────────────── */
+
+.tc-onboard {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+}
+
+.tc-onboard__card {
+  width: min(400px, 100%);
+  border-radius: 24px;
+  background: rgba(22, 22, 26, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  padding: 22px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #f4f4f5;
+}
+
+.tc-onboard__face-wrap {
+  width: 100%;
+  aspect-ratio: 456 / 280;
+  border-radius: 18px;
+  background: #000;
+  overflow: hidden;
+  container-type: size;
+  position: relative;
+}
+
+.tc-onboard__face {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100cqh;
+  height: 100cqw;
+  object-fit: fill;
+  transform: translate(-50%, -50%) rotate(270deg);
+  transform-origin: center center;
+}
+
+.tc-onboard__progress {
+  display: flex;
+  gap: 6px;
+}
+
+.tc-onboard__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tc-onboard__dot.is-on {
+  background: #e98f78;
+  transform: scale(1.2);
+}
+
+.tc-onboard__dot.is-done {
+  background: rgba(233, 143, 120, 0.55);
+}
+
+.tc-onboard__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+  text-align: center;
+  color: #fafafa;
+}
+
+.tc-onboard__body {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.tc-onboard__field {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tc-onboard__field input,
+.tc-onboard__field select {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  color: #f4f4f5;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.tc-onboard__check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.tc-onboard__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.tc-onboard__btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4f4f5;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.tc-onboard__btn--primary {
+  background: rgba(233, 143, 120, 0.3);
+  border-color: rgba(233, 143, 120, 0.55);
+  color: #ffe8e0;
+}
+
+.tc-onboard__skip {
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.4);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px;
+}
