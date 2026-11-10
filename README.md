@@ -28,7 +28,7 @@ See [BUILD_LINUX.md](BUILD_LINUX.md) to build from source, or install a publishe
 ### From source (developers)
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/AstroLabs-UK/TabyCustomAgent
 cd taby-custom-agent
 npm install
 npm run tauri dev    # native shell
