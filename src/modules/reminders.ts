@@ -107,6 +107,35 @@ export function upcomingReminders(now = Date.now()): Reminder[] {
     .sort((a, b) => a.fireAt - b.fireAt);
 }
 
+export function updateReminder(
+  id: string,
+  patch: Partial<Pick<Reminder, "title" | "fireAt" | "faceNudge">>
+): Reminder | null {
+  const all = loadReminders();
+  const i = all.findIndex((r) => r.id === id);
+  if (i < 0) return null;
+  all[i] = { ...all[i], ...patch };
+  saveReminders(all);
+  return all[i];
+}
+
+export function findReminder(query: string): Reminder | undefined {
+  const q = query.trim().toLowerCase();
+  if (!q) return undefined;
+  const all = loadReminders().filter((r) => !r.dismissed);
+  return (
+    all.find((r) => r.id === query) ||
+    all.find((r) => r.title.toLowerCase() === q) ||
+    all.find((r) => r.title.toLowerCase().includes(q))
+  );
+}
+
+export function deleteReminder(id: string): void {
+  saveReminders(loadReminders().filter((r) => r.id !== id));
+}
+
+
+
 // ——— Wellness / default recurring toggles ————————————————————————————
 
 function mergeWellnessDefaults(
