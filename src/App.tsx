@@ -315,6 +315,9 @@ function App() {
   }
 
   const deviceOk = deviceState === "connected";
+  /** On-screen face hides only for a real Physical Taby, not the mock. */
+  const physicalDeviceConnected =
+    deviceOk && settings.device.transport !== "mock";
   const aiOk = aiStatusOk(settings.ai);
   const connectionOk = deviceOk || aiOk;
   const connectionLabel = `${deviceOk ? "Device connected" : "Device offline"} · ${aiStatusLabel(settings.ai)}`;
