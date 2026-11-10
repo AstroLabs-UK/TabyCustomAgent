@@ -1869,7 +1869,7 @@ html, body, #root {
   height: 100%;
   position: relative;
   overflow: hidden;
-  background: #000000;
+  background: transparent;
 }
 
 /*
@@ -3111,4 +3111,40 @@ html, body, #root {
   border: 1px solid rgba(255,255,255,0.14) !important;
   width: 100% !important;
   max-width: 400px !important;
+}
+
+
+/* Face — no outline / black box; transparent frame */
+.local-face-panel,
+.overlay-root .local-face-panel,
+.hud-stage--stack .local-face-panel {
+  background: transparent !important;
+  border: none;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+.local-face-frame {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+.local-face-gif {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.local-face-missing {
+  display: none !important;
 }

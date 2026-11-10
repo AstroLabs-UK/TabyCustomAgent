@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   FACE_LABELS,
   publishFaceState,
@@ -22,8 +27,8 @@ export const FACE_DISPLAY_ASPECT = `${FACE_NATIVE_H} / ${FACE_NATIVE_W}`; // 456
 const IDLE_VARIANTS = ["idle_01_loop", "idle_02_loop"] as const;
 const IDLE_STILL_PAUSE_MS = 900;
 
-/** Cute one-shots when the user wiggles the mouse over Taby */
-const CUTE_WIGGLE = [
+/** Cute one-shots when the user pets / wiggles Taby — only ids with real GIF files */
+const CUTE_CANDIDATES = [
   "blush",
   "love_01",
   "wow",
@@ -31,14 +36,23 @@ const CUTE_WIGGLE = [
   "yeah",
   "flower_grow",
   "trophy",
+  "confirmation",
+  "task_completed",
 ] as const;
-const WIGGLE_DISTANCE_PX = 90;
-const WIGGLE_COOLDOWN_MS = 4500;
 
-function gifSrc(id: string, token: number): string | null {
-  const base = gifForAnimationId(id);
-  if (!base) return null;
-  return `${base}${base.includes("?") ? "&" : "?"}t=${token}`;
+const CUTE_WIGGLE = CUTE_CANDIDATES.filter((id) => Boolean(gifForAnimationId(id)));
+
+const WIGGLE_DISTANCE_PX = 110;
+const WIGGLE_COOLDOWN_MS = 5000;
+
+function resolveGif(id: string): { id: string; src: string } {
+  const preferred = (id || "idle_01_loop").trim();
+  const path =
+    gifForAnimationId(preferred) ||
+    gifForAnimationId("idle_01_loop") ||
+    "/taby-faces/idle_01_loop.gif";
+  const resolvedId = gifForAnimationId(preferred) ? preferred : "idle_01_loop";
+  return { id: resolvedId, src: path };
 }
 
 function nextIdle(current: string): string {
@@ -48,8 +62,7 @@ function nextIdle(current: string): string {
 }
 
 /**
- * On-screen face: raw GIF rotated 270° clockwise from raw file; box = rotated bounds (no letterbox).
- * Hide this entirely when a Physical Taby is connected.
+ * On-screen face — no outline box; pet/wiggle for a random cute reaction.
  */
 export function LocalFacePanel() {
   const [face, setFace] = useState<FaceDisplayState>(
@@ -61,12 +74,13 @@ export function LocalFacePanel() {
         connected: true,
       }
   );
-  const [token, setToken] = useState(0);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastId = useRef("");
+  const lastId = useRef("idle_01_loop");
   const lastPointer = useRef<{ x: number; y: number } | null>(null);
   const travel = useRef(0);
   const lastWiggleAt = useRef(0);
+  /** Keep last good src so we never flash “No face GIF”. */
+  const lastSrc = useRef(resolveGif("idle_01_loop").src);
 
   useEffect(() => {
     publishFaceState({
@@ -78,8 +92,13 @@ export function LocalFacePanel() {
       connected: true,
     });
     return subscribeFaceState((s) => {
-      setFace({ ...s, connected: true });
-      setToken((n) => n + 1);
+      const nextId = s.animationId || "idle_01_loop";
+      // Only update when the animation actually changes — avoids reload flicker on hover
+      if (nextId === lastId.current && !s.force) {
+        return;
+      }
+      lastId.current = nextId;
+      setFace({ ...s, connected: true, animationId: nextId });
     });
   }, []);
 
@@ -125,7 +144,7 @@ export function LocalFacePanel() {
     return () => {
       if (idleTimer.current) clearTimeout(idleTimer.current);
     };
-  }, [face.animationId, token]);
+  }, [face.animationId]);
 
   function handleFacePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
     const prev = lastPointer.current;
@@ -141,11 +160,15 @@ export function LocalFacePanel() {
     ) {
       travel.current = 0;
       lastWiggleAt.current = now;
-      const pick =
-        CUTE_WIGGLE[Math.floor(Math.random() * CUTE_WIGGLE.length)];
+      const pool = CUTE_WIGGLE.length
+        ? CUTE_WIGGLE
+        : (["yeah", "thumbs_up"] as const);
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      // Only publish if we can resolve a real file
+      const resolved = resolveGif(pick);
       publishFaceState({
-        animationId: pick,
-        label: FACE_LABELS[pick] ?? pick,
+        animationId: resolved.id,
+        label: FACE_LABELS[resolved.id] ?? resolved.id,
         at: now,
         connected: true,
         force: true,
@@ -155,39 +178,44 @@ export function LocalFacePanel() {
 
   function handleFacePointerLeave() {
     lastPointer.current = null;
-    travel.current = 0;
+    // keep travel so a short leave doesn't fully reset petting progress
   }
 
   const id = face.animationId || "idle_01_loop";
-  const src = gifSrc(id, token);
-  const title = FACE_LABELS[id] ?? face.label ?? id;
+  const resolved = resolveGif(id);
+  lastSrc.current = resolved.src;
+  const title = FACE_LABELS[resolved.id] ?? face.label ?? resolved.id;
 
   return (
     <div
       className="local-face-panel"
       aria-label="Taby face"
+      title="Pet me"
       style={{ aspectRatio: FACE_DISPLAY_ASPECT }}
       onPointerMove={handleFacePointerMove}
       onPointerLeave={handleFacePointerLeave}
-      onPointerEnter={() => {
-        travel.current = 0;
-        lastPointer.current = null;
+      onPointerEnter={(e) => {
+        lastPointer.current = { x: e.clientX, y: e.clientY };
       }}
     >
       <div className="local-face-frame">
-        {src ? (
-          <img
-            key={`${id}-${token}`}
-            src={src}
-            alt={title}
-            className="local-face-gif"
-            width={FACE_NATIVE_W}
-            height={FACE_NATIVE_H}
-            draggable={false}
-          />
-        ) : (
-          <div className="local-face-missing">No face GIF</div>
-        )}
+        <img
+          src={lastSrc.current}
+          alt={title}
+          className="local-face-gif"
+          width={FACE_NATIVE_W}
+          height={FACE_NATIVE_H}
+          draggable={false}
+          onError={(ev) => {
+            // Hard fallback — never leave a broken image
+            const img = ev.currentTarget;
+            const fb = resolveGif("idle_01_loop").src;
+            if (img.src !== fb) {
+              img.src = fb;
+              lastSrc.current = fb;
+            }
+          }}
+        />
       </div>
     </div>
   );
