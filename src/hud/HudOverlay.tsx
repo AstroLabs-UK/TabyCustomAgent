@@ -74,18 +74,18 @@ export function HudOverlay({
   const visible = phase !== "hidden" || Boolean(activeModuleId);
   const expanded = phase === "expanded";
 
-  // Window size: full-screen scrim whenever UI is up so outside clicks land here
+  // Window size: compact HUD when prompt/face only; scrim only with menu/module open
   useEffect(() => {
     if (!visible) {
-      if (hasDismissedOnce.current) {
-        void applyOverlayMode("hidden");
-      } else {
-        void applyOverlayMode("scrim");
-      }
+      // Always hide to tray — never leave an empty fullscreen ghost window
+      void applyOverlayMode("hidden");
       return;
     }
-    // Always scrim while visible — needed for click-outside
-    void applyOverlayMode("scrim");
+    if (menuOrPanelOpen) {
+      void applyOverlayMode("scrim");
+    } else {
+      void applyOverlayMode("compact");
+    }
   }, [visible, menuOrPanelOpen, phase, modulePanel, activeModuleId]);
 
   useEffect(() => {

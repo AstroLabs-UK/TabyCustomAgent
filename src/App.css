@@ -2939,3 +2939,31 @@ html, body, #root {
   text-decoration: underline;
   padding: 4px;
 }
+
+
+/* Ensure HUD chrome is visible on transparent Tauri windows */
+.hud-stage--stack .hud-compact,
+.hud-stage--stack .compact-prompt,
+.overlay-root .hud-compact {
+  background: rgba(22, 22, 28, 0.94) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+.hud-stage--stack .hud-nav-panel,
+.hud-stage--stack .hud-module-panel,
+.hud-stage--stack .hud-module-card {
+  background: rgba(22, 22, 28, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4) !important;
+}
+
+.tc-onboard {
+  background: rgba(0, 0, 0, 0.35) !important;
+}
+
+.tc-onboard__card {
+  background: rgba(22, 22, 28, 0.98) !important;
+}

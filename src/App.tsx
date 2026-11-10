@@ -76,7 +76,7 @@ function App() {
   useEffect(() => {
     setSettings(loadSettings());
     setChat(loadChatState());
-    void applyOverlayMode("expanded"); // first paint; click-off → tray
+    void applyOverlayMode("compact"); // first paint shows HUD-sized window
   }, []);
 
   // Push hover activation area to the native edge watcher (when window is hidden).
@@ -585,6 +585,13 @@ function App() {
 
   const showOnboarding =
     forceOnboarding || settings.onboardingCompleted === false;
+
+  // Onboarding / zone viz need a real visible window, not tray
+  useEffect(() => {
+    if (showOnboarding || zoneViz) {
+      void applyOverlayMode("compact");
+    }
+  }, [showOnboarding, zoneViz]);
 
   if (showOnboarding && !zoneViz) {
     return (
