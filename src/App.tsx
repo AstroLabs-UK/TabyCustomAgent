@@ -595,7 +595,7 @@ function App() {
 
   if (showOnboarding && !zoneViz) {
     return (
-      <div className="overlay-root">
+      <div className="overlay-root tc-shell">
         <OnboardingWizard
           settings={settings}
           setSettings={setSettings}
@@ -647,7 +647,7 @@ function App() {
   }
 
   return (
-    <div className="overlay-root">
+    <div className="overlay-root tc-shell">
       <HudOverlay
         dwellMs={settings.hud.dwellMs}
         connectionLabel={connectionLabel}

@@ -459,6 +459,13 @@ pub fn run() {
             let _ = tray.build(app);
 
             if let Some(win) = app.get_webview_window("main") {
+                // Force a real HUD-sized window at startup (never blank fullscreen)
+                let _ = win.set_size(tauri::LogicalSize::new(440.0, 720.0));
+                let _ = win.center();
+                let _ = win.set_always_on_top(true);
+                let _ = win.show();
+                let _ = win.set_focus();
+
                 let app_handle = app.handle().clone();
                 win.on_window_event(move |event| {
                     if let WindowEvent::CloseRequested { api, .. } = event {
