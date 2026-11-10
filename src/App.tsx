@@ -44,7 +44,7 @@ import {
   ThisWeekView,
 } from "./modules/ModuleViews";
 import { tickReminders } from "./modules/reminders";
-import { invokeTool, SYSTEM_TOOL_PROMPT } from "./tools/registry";
+import { invokeToolAsync, SYSTEM_TOOL_PROMPT } from "./tools/registry";
 import { LocalFacePanel } from "./device/LocalFacePanel";
 import { typewriterToward } from "./chat/typewriter";
 import { publishFaceState, FACE_LABELS } from "./device/faceBus";
@@ -275,8 +275,12 @@ function App() {
         for await (const chunk of completeStream(forApi, settings.ai)) {
           if (chunk.type === "tool_call" && chunk.toolName) {
             const args = (chunk.toolArgs ?? {}) as Record<string, unknown>;
-            const result = invokeTool(chunk.toolName, args);
-            toolNotes.push(`${chunk.toolName}: ${result.message}`);
+            const result = await invokeToolAsync(chunk.toolName, args);
+            const detail =
+              result.data !== undefined
+                ? `${result.message} | data=${JSON.stringify(result.data).slice(0, 800)}`
+                : result.message;
+            toolNotes.push(`${chunk.toolName}: ${detail}`);
             setStatusLine(result.message);
           }
           if (chunk.type === "token" && chunk.text) {

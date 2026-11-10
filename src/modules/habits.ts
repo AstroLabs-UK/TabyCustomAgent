@@ -71,3 +71,30 @@ export function habitsDueToday(today = new Date()): Habit[] {
   const k = dayKey(today);
   return loadHabits().filter((h) => !h.checks.includes(k));
 }
+
+
+export function deleteHabit(id: string): void {
+  saveHabits(loadHabits().filter((h) => h.id !== id));
+}
+
+export function updateHabit(
+  id: string,
+  patch: Partial<Pick<Habit, "title">>
+): Habit | null {
+  const all = loadHabits();
+  const i = all.findIndex((h) => h.id === id);
+  if (i < 0) return null;
+  all[i] = { ...all[i], ...patch };
+  saveHabits(all);
+  return all[i];
+}
+
+export function findHabit(query: string): Habit | undefined {
+  const q = query.trim().toLowerCase();
+  const all = loadHabits();
+  return (
+    all.find((h) => h.id === query) ||
+    all.find((h) => h.title.toLowerCase() === q) ||
+    all.find((h) => h.title.toLowerCase().includes(q))
+  );
+}
