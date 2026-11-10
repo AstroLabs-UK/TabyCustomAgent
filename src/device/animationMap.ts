@@ -186,6 +186,9 @@ export const FACE_GIF_BY_ID: Record<string, string> = {
 };
 
 /** Prefer semantic name; hash path also shipped under public/taby-faces/a/ */
+/** @deprecated alias — tools/registry still imports GIF_PATHS */
+export const GIF_PATHS: Record<string, string> = FACE_GIF_BY_ID;
+
 export function gifForAnimationId(id: string): string | null {
   if (GIF_PATHS[id]) return GIF_PATHS[id];
   // alias common shorts
