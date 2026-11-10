@@ -123,6 +123,29 @@ fn is_main_visible(app: &tauri::AppHandle) -> bool {
         .unwrap_or(false)
 }
 
+fn dpi_scale() -> f64 {
+    #[cfg(target_os = "windows")]
+    {
+        extern "system" {
+            fn GetDpiForSystem() -> u32;
+        }
+        unsafe {
+            let dpi = GetDpiForSystem();
+            if dpi > 0 {
+                return dpi as f64 / 96.0;
+            }
+        }
+    }
+    1.0
+}
+
+/// Logical (CSS) primary size — matches the visualizer.
+fn primary_screen_size_logical() -> (i32, i32) {
+    let (pw, ph) = primary_screen_size();
+    let s = dpi_scale();
+    ((pw as f64 / s).round() as i32, (ph as f64 / s).round() as i32)
+}
+
 fn primary_screen_size() -> (i32, i32) {
     #[cfg(target_os = "windows")]
     {
@@ -263,7 +286,9 @@ fn start_edge_watcher(
             }
 
             let cfg = zone.lock().map(|g| g.clone()).unwrap_or_default();
-            let (screen_w, _) = primary_screen_size();
+            // Work in logical/CSS pixels so visualizer ↔ hit-test match under DPI scaling
+            let scale = dpi_scale();
+            let (screen_w, _) = primary_screen_size_logical();
             let depth = cfg.depth_px.max(4);
             let width = ((screen_w as f64) * cfg.width_frac.clamp(0.05, 1.0)).round() as i32;
             let center = ((screen_w as f64) * cfg.center_frac.clamp(0.0, 1.0)).round() as i32;
@@ -271,7 +296,11 @@ fn start_edge_watcher(
             let right = (center + width / 2).min(screen_w);
 
             let near = match Mouse::get_mouse_position() {
-                Mouse::Position { x, y } => y >= 0 && y <= depth && x >= left && x <= right,
+                Mouse::Position { x, y } => {
+                    let lx = (x as f64 / scale).round() as i32;
+                    let ly = (y as f64 / scale).round() as i32;
+                    ly >= 0 && ly <= depth && lx >= left && lx <= right
+                }
                 Mouse::Error => false,
             };
 
@@ -344,7 +373,19 @@ fn update_edge_zone(
 
 #[tauri::command]
 fn get_primary_screen_size() -> (i32, i32) {
-    primary_screen_size()
+    primary_screen_size_logical()
+}
+
+/// Returns (screen_w, left, width, depth) in logical CSS pixels — same as visualizer.
+#[tauri::command]
+fn get_edge_zone_rect(state: tauri::State<'_, ZoneState>) -> (i32, i32, i32, i32) {
+    let cfg = state.0.lock().map(|g| g.clone()).unwrap_or_default();
+    let (screen_w, _) = primary_screen_size_logical();
+    let depth = cfg.depth_px.max(4);
+    let width = ((screen_w as f64) * cfg.width_frac.clamp(0.05, 1.0)).round() as i32;
+    let center = ((screen_w as f64) * cfg.center_frac.clamp(0.0, 1.0)).round() as i32;
+    let left = (center - width / 2).max(0);
+    (screen_w, left, width, depth)
 }
 
 #[tauri::command]
@@ -379,6 +420,7 @@ pub fn run() {
             set_diagnostics_enabled,
             update_edge_zone,
             get_primary_screen_size,
+            get_edge_zone_rect,
             get_startup_log_path
         ])
         .setup(move |app| {

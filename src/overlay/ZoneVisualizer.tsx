@@ -1,28 +1,58 @@
 import { useCallback, useEffect, useState } from "react";
 import type { EdgeZone } from "../settings/types";
-import { clampZone, fetchPrimaryScreenSize } from "./edgeZone";
+import { clampZone, fetchPrimaryScreenSize, pushEdgeZoneToRust } from "./edgeZone";
 
 /**
- * Full-window orange haze for the activation zone.
- * Drag horizontally along the top to move; edges can be resized later via settings sliders.
+ * Orange haze matching the real activation zone (logical CSS pixels, DPI-aligned).
  */
 export function ZoneVisualizer({
   zone,
   onChange,
   onDone,
+  dwellMs = 500,
+  dwellBrowserMs = 700,
+  dwellGameMs = 1000,
 }: {
   zone: EdgeZone;
   onChange: (z: EdgeZone) => void;
   onDone: () => void;
+  dwellMs?: number;
+  dwellBrowserMs?: number;
+  dwellGameMs?: number;
 }) {
   const [screenW, setScreenW] = useState(
-    typeof window !== "undefined" ? window.screen.width : 1920
+    typeof window !== "undefined" ? window.innerWidth : 1920
   );
   const [dragging, setDragging] = useState(false);
 
-  useEffect(() => {
-    void fetchPrimaryScreenSize().then((s) => setScreenW(s.w));
+  const refreshScreen = useCallback(async () => {
+    const s = await fetchPrimaryScreenSize();
+    // Prefer innerWidth when fullscreen scrim — matches clientX space
+    const w =
+      typeof window !== "undefined"
+        ? Math.max(window.innerWidth, s.w)
+        : s.w;
+    setScreenW(w);
   }, []);
+
+  useEffect(() => {
+    void refreshScreen();
+    const onResize = () => void refreshScreen();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [refreshScreen]);
+
+  // Keep Rust hit-test in sync while editing
+  useEffect(() => {
+    void pushEdgeZoneToRust({
+      centerFrac: zone.centerFrac,
+      widthFrac: zone.widthFrac,
+      depthPx: zone.depthPx,
+      dwellProductivityMs: dwellMs,
+      dwellBrowserMs,
+      dwellGameMs,
+    });
+  }, [zone, dwellMs, dwellBrowserMs, dwellGameMs]);
 
   const widthPx = screenW * zone.widthFrac;
   const leftPx = screenW * zone.centerFrac - widthPx / 2;
@@ -59,8 +89,8 @@ export function ZoneVisualizer({
         className="zone-viz-haze"
         style={{
           left: Math.max(0, leftPx),
-          width: widthPx,
-          height: depth,
+          width: Math.max(8, widthPx),
+          height: Math.max(4, depth),
         }}
         onPointerDown={(e) => {
           e.preventDefault();
@@ -68,7 +98,7 @@ export function ZoneVisualizer({
         }}
       >
         <span className="zone-viz-label">
-          Drag to move · {Math.round(zone.widthFrac * 100)}% wide · {depth}px deep
+          Drag · {Math.round(zone.widthFrac * 100)}% × {depth}px (matches trigger)
         </span>
       </div>
       <div className="zone-viz-toolbar">

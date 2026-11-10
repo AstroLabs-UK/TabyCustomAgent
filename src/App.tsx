@@ -368,38 +368,42 @@ function App() {
         return <HomeView deviceLabel={connectionLabel} />;
       case "chat":
         return (
-          <>
-            <ChatView
-              conversation={activeConv}
-              streaming={streaming}
-              conversations={chat.conversations}
-              onNewChat={() => {
-                const conv = createConversation();
-                persistChat({
-                  conversations: [conv, ...chat.conversations],
-                  activeId: conv.id,
-                });
-              }}
-              onSelect={(id) => persistChat({ ...chat, activeId: id })}
-              onDelete={(id) => {
-                persistChat(deleteConversation(chat, id));
-              }}
-            />
-            <div
-              className={`voice-bar${voicePhase === "recording" ? " is-recording" : ""}`}
-            >
-              <button
-                type="button"
-                className="btn"
-                onClick={() => void handleVoiceClick()}
+          <ChatView
+            conversation={activeConv}
+            streaming={streaming}
+            conversations={chat.conversations}
+            onNewChat={() => {
+              const conv = createConversation();
+              persistChat({
+                conversations: [conv, ...chat.conversations],
+                activeId: conv.id,
+              });
+            }}
+            onSelect={(id) => persistChat({ ...chat, activeId: id })}
+            onDelete={(id) => {
+              persistChat(deleteConversation(chat, id));
+            }}
+            footer={
+              <div
+                className={`tc-chat__voice${
+                  voicePhase === "recording" ? " is-recording" : ""
+                }`}
               >
-                {voicePhase === "recording"
-                  ? `Stop (${recSeconds}s)`
-                  : "Voice (mock)"}
-              </button>
-              {statusLine && <span className="hint">{statusLine}</span>}
-            </div>
-          </>
+                <button
+                  type="button"
+                  className="tc-chat__btn"
+                  onClick={() => void handleVoiceClick()}
+                >
+                  {voicePhase === "recording"
+                    ? `Stop (${recSeconds}s)`
+                    : "Voice (mock)"}
+                </button>
+                {statusLine ? (
+                  <span className="tc-chat__status">{statusLine}</span>
+                ) : null}
+              </div>
+            }
+          />
         );
       case "tasks":
         return <TasksView />;
@@ -646,6 +650,9 @@ function App() {
       <div className="overlay-root">
         <ZoneVisualizer
           zone={settings.hud.edgeZone ?? DEFAULT_EDGE_ZONE}
+          dwellMs={settings.hud.dwellMs}
+          dwellBrowserMs={settings.hud.dwellBrowserMs ?? 700}
+          dwellGameMs={settings.hud.dwellGameMs ?? 1000}
           onChange={(z) =>
             setSettings((s) => ({
               ...s,
