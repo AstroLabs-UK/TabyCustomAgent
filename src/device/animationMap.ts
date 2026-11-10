@@ -1,13 +1,6 @@
 /**
- * Animation ID map + validation (Stage 5–6).
- * IDs match Physical Taby stock firmware (amoled-1.64 pack).
- *
- * Chat turn mapping:
- *   listening → listening_loop (+alts random)
- *   busy / AI loading → working_loop (ff09215b) primary
- *   done → confirmation (+alts), then idle after duration + extra delay
- *   error → disappointed (+alts), then idle
- *   idle → idle_01_loop (+alts)
+ * Animation map generated from firmware-taby amoled-1.64 catalog.json
+ * Pack version: 0.3.3
  */
 
 export type FaceState = "listening" | "busy" | "done" | "error" | "idle";
@@ -15,16 +8,103 @@ export type FaceState = "listening" | "busy" | "done" | "error" | "idle";
 export type AnimationMap = {
   version: number;
   states: Record<FaceState, string>;
-  /** Optional alternates per state — resolveAnimation may pick at random */
   alternatives: Partial<Record<FaceState, string[]>>;
   knownAnimationIds: string[];
   durationsMs: Record<string, number>;
-  /** Extra hold after one-shot before idle (ms) */
   postDoneDelayMs: number;
 };
 
+export const CATALOG_ANIMATION_IDS = [
+  "angry_01_loop",
+  "angry_02_loop",
+  "basketball_dunk",
+  "basketball_throw",
+  "blush",
+  "boxing",
+  "break_start",
+  "busy_loop",
+  "calendar_in",
+  "calendar_loop",
+  "circle",
+  "confirmation",
+  "copy_paste",
+  "creating_task_loop",
+  "delete_01",
+  "disappointed",
+  "drink_water",
+  "f1_car",
+  "fishing_long",
+  "fishing_short",
+  "flower_grow",
+  "hello_annoyed",
+  "idle_01_loop",
+  "calm_idle_01_f000",
+  "calm_idle_01_to_f137",
+  "calm_idle_01_f137",
+  "calm_idle_01_f137_to_f177",
+  "calm_idle_01_f177",
+  "calm_idle_01_f177_to_f216",
+  "calm_idle_01_f216",
+  "calm_work_low_f000",
+  "calm_work_medium_f000",
+  "calm_work_high_f000",
+  "idle_02_loop",
+  "idle_variation_loop",
+  "listening_in",
+  "listening_loop",
+  "listening_music_loop",
+  "lockin",
+  "love_01",
+  "perfect_day_01",
+  "perfect_day_01_simple",
+  "perfect_day_02",
+  "perfect_day_03",
+  "posture_check",
+  "relaxing_01_loop",
+  "relaxing_couch_in",
+  "relaxing_couch_loop",
+  "sleeping_loop",
+  "square",
+  "startup",
+  "stretching",
+  "talking_default_loop",
+  "task_completed",
+  "task_created",
+  "task_page",
+  "thumbs_up",
+  "trophy",
+  "turn_off_reddit",
+  "turn_off_scroll",
+  "turn_off_tv",
+  "waiting_01",
+  "working_in",
+  "working_loop",
+  "working_laptop_in",
+  "working_laptop_loop",
+  "working_laptop_bored_loop",
+  "working_laptop_excited_loop",
+  "working_laptop_normal_loop",
+  "workspaces_in",
+  "workspaces_loop",
+  "wow",
+  "codex_in",
+  "codex_loop",
+  "day_planned",
+  "hello_disappointed",
+  "claude_in",
+  "claude_loop",
+  "taby_response_ready_in",
+  "taby_response_ready_loop",
+  "yeah",
+  "no",
+  "review",
+  "searching_loop"
+] as const;
+
+export type CatalogAnimationId = (typeof CATALOG_ANIMATION_IDS)[number] | string;
+
 export const DEFAULT_ANIMATION_MAP: AnimationMap = {
-  version: 5,
+  version: 10,
   states: {
     listening: "listening_loop",
     busy: "working_loop",
@@ -33,78 +113,201 @@ export const DEFAULT_ANIMATION_MAP: AnimationMap = {
     idle: "idle_01_loop",
   },
   alternatives: {
-    listening: ["listening_loop", "listening_in"],
-    busy: ["working_loop"], // keep AI load on working_loop; room for more later
-    done: ["confirmation", "thumbs_up", "yeah", "task_completed"],
-    error: ["disappointed", "hello_disappointed"],
-    idle: ["idle_01_loop", "idle_02_loop"],
+    listening: ["listening_loop", "listening_in", "listening_music_loop"],
+    busy: ["working_loop", "working_laptop_loop", "searching_loop", "creating_task_loop"],
+    done: ["confirmation", "thumbs_up", "yeah", "task_completed", "trophy", "wow"],
+    error: ["disappointed", "hello_disappointed", "no", "angry_01_loop"],
+    idle: ["idle_01_loop", "idle_02_loop", "idle_variation_loop", "relaxing_01_loop"],
   },
-  knownAnimationIds: [
-    "listening_loop",
-    "listening_in",
-    "busy_loop",
-    "working_loop",
-    "confirmation",
-    "thumbs_up",
-    "yeah",
-    "task_completed",
-    "disappointed",
-    "hello_disappointed",
-    "idle_01_loop",
-    "idle_02_loop",
-    "listening",
-    "thinking",
-    "error",
-    "idle",
-  ],
+  knownAnimationIds: [...CATALOG_ANIMATION_IDS],
   durationsMs: {
-    listening_loop: 2667,
-    listening_in: 2000,
-    busy_loop: 3500,
-    working_loop: 1333,
-    confirmation: 1958,
-    thumbs_up: 3167,
-    yeah: 2333,
-    task_completed: 3125,
-    disappointed: 2792,
-    hello_disappointed: 4250,
-    idle_01_loop: 9042,
-    idle_02_loop: 7875,
-  },
-  /** Extra dwell after done/error one-shot before idle */
+  "angry_01_loop": 2542,
+  "angry_02_loop": 2500,
+  "basketball_dunk": 4208,
+  "basketball_throw": 4167,
+  "blush": 4875,
+  "boxing": 5042,
+  "break_start": 6708,
+  "busy_loop": 3500,
+  "calendar_in": 2083,
+  "calendar_loop": 2042,
+  "circle": 2875,
+  "confirmation": 1958,
+  "copy_paste": 3125,
+  "creating_task_loop": 1708,
+  "delete_01": 3542,
+  "disappointed": 2792,
+  "drink_water": 6875,
+  "f1_car": 8417,
+  "fishing_long": 7875,
+  "fishing_short": 5750,
+  "flower_grow": 8583,
+  "hello_annoyed": 8833,
+  "idle_01_loop": 9042,
+  "calm_idle_01_f000": 1000,
+  "calm_idle_01_to_f137": 5708,
+  "calm_idle_01_f137": 1000,
+  "calm_idle_01_f137_to_f177": 1667,
+  "calm_idle_01_f177": 1000,
+  "calm_idle_01_f177_to_f216": 1625,
+  "calm_idle_01_f216": 1000,
+  "calm_work_low_f000": 1000,
+  "calm_work_medium_f000": 1000,
+  "calm_work_high_f000": 1000,
+  "idle_02_loop": 7875,
+  "idle_variation_loop": 1667,
+  "listening_in": 2000,
+  "listening_loop": 2667,
+  "listening_music_loop": 5333,
+  "lockin": 3958,
+  "love_01": 6333,
+  "perfect_day_01": 7125,
+  "perfect_day_01_simple": 7167,
+  "perfect_day_02": 5500,
+  "perfect_day_03": 6375,
+  "posture_check": 6125,
+  "relaxing_01_loop": 3458,
+  "relaxing_couch_in": 1333,
+  "relaxing_couch_loop": 2000,
+  "sleeping_loop": 3250,
+  "square": 3458,
+  "startup": 7667,
+  "stretching": 6250,
+  "talking_default_loop": 5333,
+  "task_completed": 3125,
+  "task_created": 5208,
+  "task_page": 3583,
+  "thumbs_up": 3167,
+  "trophy": 7208,
+  "turn_off_reddit": 6583,
+  "turn_off_scroll": 6500,
+  "turn_off_tv": 6583,
+  "waiting_01": 12917,
+  "working_in": 2000,
+  "working_loop": 1333,
+  "working_laptop_in": 1625,
+  "working_laptop_loop": 2667,
+  "working_laptop_bored_loop": 1667,
+  "working_laptop_excited_loop": 1667,
+  "working_laptop_normal_loop": 1667,
+  "workspaces_in": 2250,
+  "workspaces_loop": 4375,
+  "wow": 2583,
+  "codex_in": 2042,
+  "codex_loop": 1667,
+  "day_planned": 6250,
+  "hello_disappointed": 4250,
+  "claude_in": 3708,
+  "claude_loop": 1667,
+  "taby_response_ready_in": 1083,
+  "taby_response_ready_loop": 1250,
+  "yeah": 2333,
+  "no": 4333,
+  "review": 2000,
+  "searching_loop": 1000
+},
   postDoneDelayMs: 1200,
 };
 
-export const FACE_GIF_BY_ID: Record<string, string> = {
-  listening_loop: "/taby-faces/listening_loop.gif",
-  listening_in: "/taby-faces/listening_in.gif",
-  busy_loop: "/taby-faces/busy_loop.gif",
-  working_loop: "/taby-faces/working_loop.gif",
-  confirmation: "/taby-faces/confirmation.gif",
-  thumbs_up: "/taby-faces/thumbs_up.gif",
-  yeah: "/taby-faces/yeah.gif",
-  task_completed: "/taby-faces/task_completed.gif",
-  disappointed: "/taby-faces/disappointed.gif",
-  hello_disappointed: "/taby-faces/hello_disappointed.gif",
-  idle_01_loop: "/taby-faces/idle_01_loop.gif",
-  idle_02_loop: "/taby-faces/idle_02_loop.gif",
-  listening: "/taby-faces/listening_loop.gif",
-  thinking: "/taby-faces/working_loop.gif",
-  error: "/taby-faces/disappointed.gif",
-  idle: "/taby-faces/idle_01_loop.gif",
+export const GIF_PATHS: Record<string, string> = {
+  "angry_01_loop": "/taby-faces/angry_01_loop.gif",
+  "angry_02_loop": "/taby-faces/angry_02_loop.gif",
+  "basketball_dunk": "/taby-faces/basketball_dunk.gif",
+  "basketball_throw": "/taby-faces/basketball_throw.gif",
+  "blush": "/taby-faces/blush.gif",
+  "boxing": "/taby-faces/boxing.gif",
+  "break_start": "/taby-faces/break_start.gif",
+  "busy_loop": "/taby-faces/busy_loop.gif",
+  "calendar_in": "/taby-faces/calendar_in.gif",
+  "calendar_loop": "/taby-faces/calendar_loop.gif",
+  "circle": "/taby-faces/circle.gif",
+  "confirmation": "/taby-faces/confirmation.gif",
+  "copy_paste": "/taby-faces/copy_paste.gif",
+  "creating_task_loop": "/taby-faces/creating_task_loop.gif",
+  "delete_01": "/taby-faces/delete_01.gif",
+  "disappointed": "/taby-faces/disappointed.gif",
+  "drink_water": "/taby-faces/drink_water.gif",
+  "f1_car": "/taby-faces/f1_car.gif",
+  "fishing_long": "/taby-faces/fishing_long.gif",
+  "fishing_short": "/taby-faces/fishing_short.gif",
+  "flower_grow": "/taby-faces/flower_grow.gif",
+  "hello_annoyed": "/taby-faces/hello_annoyed.gif",
+  "idle_01_loop": "/taby-faces/idle_01_loop.gif",
+  "calm_idle_01_f000": "/taby-faces/calm_idle_01_f000.gif",
+  "calm_idle_01_to_f137": "/taby-faces/calm_idle_01_to_f137.gif",
+  "calm_idle_01_f137": "/taby-faces/calm_idle_01_f137.gif",
+  "calm_idle_01_f137_to_f177": "/taby-faces/calm_idle_01_f137_to_f177.gif",
+  "calm_idle_01_f177": "/taby-faces/calm_idle_01_f177.gif",
+  "calm_idle_01_f177_to_f216": "/taby-faces/calm_idle_01_f177_to_f216.gif",
+  "calm_idle_01_f216": "/taby-faces/calm_idle_01_f216.gif",
+  "calm_work_low_f000": "/taby-faces/calm_work_low_f000.gif",
+  "calm_work_medium_f000": "/taby-faces/calm_work_medium_f000.gif",
+  "calm_work_high_f000": "/taby-faces/calm_work_high_f000.gif",
+  "idle_02_loop": "/taby-faces/idle_02_loop.gif",
+  "idle_variation_loop": "/taby-faces/idle_variation_loop.gif",
+  "listening_in": "/taby-faces/listening_in.gif",
+  "listening_loop": "/taby-faces/listening_loop.gif",
+  "listening_music_loop": "/taby-faces/listening_music_loop.gif",
+  "lockin": "/taby-faces/lockin.gif",
+  "love_01": "/taby-faces/love_01.gif",
+  "perfect_day_01": "/taby-faces/perfect_day_01.gif",
+  "perfect_day_01_simple": "/taby-faces/perfect_day_01_simple.gif",
+  "perfect_day_02": "/taby-faces/perfect_day_02.gif",
+  "perfect_day_03": "/taby-faces/perfect_day_03.gif",
+  "posture_check": "/taby-faces/posture_check.gif",
+  "relaxing_01_loop": "/taby-faces/relaxing_01_loop.gif",
+  "relaxing_couch_in": "/taby-faces/relaxing_couch_in.gif",
+  "relaxing_couch_loop": "/taby-faces/relaxing_couch_loop.gif",
+  "sleeping_loop": "/taby-faces/sleeping_loop.gif",
+  "square": "/taby-faces/square.gif",
+  "startup": "/taby-faces/startup.gif",
+  "stretching": "/taby-faces/stretching.gif",
+  "talking_default_loop": "/taby-faces/talking_default_loop.gif",
+  "task_completed": "/taby-faces/task_completed.gif",
+  "task_created": "/taby-faces/task_created.gif",
+  "task_page": "/taby-faces/task_page.gif",
+  "thumbs_up": "/taby-faces/thumbs_up.gif",
+  "trophy": "/taby-faces/trophy.gif",
+  "turn_off_reddit": "/taby-faces/turn_off_reddit.gif",
+  "turn_off_scroll": "/taby-faces/turn_off_scroll.gif",
+  "turn_off_tv": "/taby-faces/turn_off_tv.gif",
+  "waiting_01": "/taby-faces/waiting_01.gif",
+  "working_in": "/taby-faces/working_in.gif",
+  "working_loop": "/taby-faces/working_loop.gif",
+  "working_laptop_in": "/taby-faces/working_laptop_in.gif",
+  "working_laptop_loop": "/taby-faces/working_laptop_loop.gif",
+  "working_laptop_bored_loop": "/taby-faces/working_laptop_bored_loop.gif",
+  "working_laptop_excited_loop": "/taby-faces/working_laptop_excited_loop.gif",
+  "working_laptop_normal_loop": "/taby-faces/working_laptop_normal_loop.gif",
+  "workspaces_in": "/taby-faces/workspaces_in.gif",
+  "workspaces_loop": "/taby-faces/workspaces_loop.gif",
+  "wow": "/taby-faces/wow.gif",
+  "codex_in": "/taby-faces/codex_in.gif",
+  "codex_loop": "/taby-faces/codex_loop.gif",
+  "day_planned": "/taby-faces/day_planned.gif",
+  "hello_disappointed": "/taby-faces/hello_disappointed.gif",
+  "claude_in": "/taby-faces/claude_in.gif",
+  "claude_loop": "/taby-faces/claude_loop.gif",
+  "taby_response_ready_in": "/taby-faces/taby_response_ready_in.gif",
+  "taby_response_ready_loop": "/taby-faces/taby_response_ready_loop.gif",
+  "yeah": "/taby-faces/yeah.gif",
+  "no": "/taby-faces/no.gif",
+  "review": "/taby-faces/review.gif",
+  "searching_loop": "/taby-faces/searching_loop.gif"
 };
 
-export const LOOPING_ANIMATION_IDS = new Set([
-  "listening_loop",
-  "busy_loop",
-  "working_loop",
-  "idle_01_loop",
-  "idle_02_loop",
-  "searching_loop",
-]);
-
+/** Prefer semantic name; hash path also shipped under public/taby-faces/a/ */
 export function gifForAnimationId(id: string): string | null {
-  return FACE_GIF_BY_ID[id] ?? null;
+  if (GIF_PATHS[id]) return GIF_PATHS[id];
+  // alias common shorts
+  const aliases: Record<string, string> = {
+    idle: "idle_01_loop",
+    thinking: "working_loop",
+    done: "confirmation",
+    yes: "thumbs_up",
+  };
+  const a = aliases[id];
+  return a && GIF_PATHS[a] ? GIF_PATHS[a] : null;
 }
 
 export function durationMsFor(
@@ -115,92 +318,30 @@ export function durationMsFor(
   return map.durationsMs[id] ?? fallback;
 }
 
-function pickRandom(ids: string[]): string {
-  return ids[Math.floor(Math.random() * ids.length)] ?? ids[0];
-}
+export const LOOPING_ANIMATION_IDS = new Set<string>(["angry_01_loop", "angry_02_loop", "busy_loop", "calendar_loop", "calm_idle_01_f000", "calm_idle_01_f137", "calm_idle_01_f177", "calm_idle_01_f216", "calm_work_high_f000", "calm_work_low_f000", "calm_work_medium_f000", "claude_loop", "codex_loop", "creating_task_loop", "idle_01_loop", "idle_02_loop", "idle_variation_loop", "listening_loop", "listening_music_loop", "relaxing_01_loop", "relaxing_couch_loop", "searching_loop", "sleeping_loop", "taby_response_ready_loop", "talking_default_loop", "working_laptop_bored_loop", "working_laptop_excited_loop", "working_laptop_loop", "working_laptop_normal_loop", "working_loop", "workspaces_loop"]);
 
-/**
- * Resolve state → animation id.
- * When alternatives exist, picks randomly among primary + alts (unique).
- */
 export function resolveAnimation(
   map: AnimationMap,
-  state: FaceState,
-  opts?: { random?: boolean }
-): { id: string; known: boolean } {
-  const primary = map.states[state];
-  const alts = map.alternatives[state] ?? [];
-  const pool = Array.from(new Set([primary, ...alts].filter(Boolean)));
-  const useRandom = opts?.random !== false && pool.length > 1;
-  const id = useRandom ? pickRandom(pool) : primary;
-  return { id, known: isKnownAnimationId(map, id) };
+  state: FaceState
+): { id: string } {
+  const alts = map.alternatives[state];
+  if (alts && alts.length > 1 && Math.random() < 0.35) {
+    return { id: alts[Math.floor(Math.random() * alts.length)] };
+  }
+  if (alts && alts.length === 1) return { id: alts[0] };
+  return { id: map.states[state] };
 }
 
-export function parseAnimationMap(raw: unknown): AnimationMap {
-  if (!raw || typeof raw !== "object") {
-    throw new Error("animation map must be an object");
-  }
-  const obj = raw as Record<string, unknown>;
-  const states = obj.states;
-  if (!states || typeof states !== "object") {
-    throw new Error("animation map missing states");
-  }
-  const known = Array.isArray(obj.knownAnimationIds)
-    ? (obj.knownAnimationIds as string[]).filter((x) => typeof x === "string")
-    : [...DEFAULT_ANIMATION_MAP.knownAnimationIds];
-
-  const s = states as Record<string, string>;
-  const required: FaceState[] = ["listening", "busy", "done", "error", "idle"];
-  for (const key of required) {
-    if (typeof s[key] !== "string" || !s[key]) {
-      throw new Error(`animation map missing state: ${key}`);
-    }
-  }
-
-  const durationsMs = {
-    ...DEFAULT_ANIMATION_MAP.durationsMs,
-    ...((obj.durationsMs as Record<string, number>) || {}),
-  };
-
-  const alternatives = {
-    ...DEFAULT_ANIMATION_MAP.alternatives,
-    ...((obj.alternatives as AnimationMap["alternatives"]) || {}),
-  };
-
-  const postDoneDelayMs =
-    typeof obj.postDoneDelayMs === "number"
-      ? obj.postDoneDelayMs
-      : DEFAULT_ANIMATION_MAP.postDoneDelayMs;
-
-  return {
-    version: typeof obj.version === "number" ? obj.version : 1,
-    states: {
-      listening: s.listening,
-      busy: s.busy,
-      done: s.done,
-      error: s.error,
-      idle: s.idle,
-    },
-    alternatives,
-    knownAnimationIds: known,
-    durationsMs,
-    postDoneDelayMs,
-  };
-}
-
-export function isKnownAnimationId(map: AnimationMap, id: string): boolean {
-  return map.knownAnimationIds.includes(id);
-}
-
-export function validateAnimationId(
-  map: AnimationMap,
-  id: string
-): { ok: true } | { ok: false; reason: string } {
-  if (!id || !id.trim()) {
-    return { ok: false, reason: "empty animation id" };
-  }
-  if (!isKnownAnimationId(map, id)) {
-    return { ok: false, reason: `unsupported animation id: ${id}` };
-  }
-  return { ok: true };
-}
+/** Fun reactions the AI can force */
+export const REACTION_PRESETS: Record<string, string[]> = {
+  celebrate: ["yeah", "trophy", "task_completed", "basketball_dunk", "wow"],
+  happy: ["yeah", "thumbs_up", "blush", "love_01"],
+  sad: ["disappointed", "hello_disappointed", "no"],
+  angry: ["angry_01_loop", "angry_02_loop", "hello_annoyed"],
+  focus: ["lockin", "turn_off_scroll", "turn_off_reddit", "turn_off_tv"],
+  fun: ["f1_car", "basketball_dunk", "basketball_throw", "boxing", "fishing_short"],
+  chill: ["relaxing_couch_loop", "drink_water", "stretching", "sleeping_loop"],
+  love: ["love_01", "blush", "flower_grow"],
+  thinking: ["working_loop", "searching_loop", "busy_loop"],
+  greeting: ["startup", "yeah", "thumbs_up"],
+};

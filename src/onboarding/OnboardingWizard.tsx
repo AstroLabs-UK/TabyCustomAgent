@@ -14,38 +14,38 @@ const STEPS: Step[] = [
   {
     id: "welcome",
     title: "Hey — I'm Taby",
-    body: "Let's get Taby Custom Agent ready in under a minute. Fun faces included.",
-    face: "yeah",
+    body: "Let's get Taby Custom Agent ready in under a minute. Watch me flex.",
+    face: "f1_car",
   },
   {
     id: "ai",
     title: "Pick a brain",
     body: "Mock works offline. Groq / OpenClaw / Hermes / Ollama for live replies.",
-    face: "working_loop",
+    face: "working_laptop_excited_loop",
   },
   {
     id: "key",
     title: "API key (if needed)",
     body: "Keys stay on this device only — never uploaded with the app.",
-    face: "listening_loop",
+    face: "searching_loop",
   },
   {
     id: "face",
     title: "Show my face",
     body: "Keep an on-screen Taby, or use a Physical Taby when you connect one.",
-    face: "thumbs_up",
+    face: "basketball_dunk",
   },
   {
     id: "edge",
     title: "Summon from the top",
     body: "Hover the middle of the top edge to open me. Fine-tune the zone later in Settings.",
-    face: "confirmation",
+    face: "trophy",
   },
   {
     id: "done",
     title: "You're set!",
     body: "Open the menu, chat, manage tasks — or re-run this tour from Settings → Advanced.",
-    face: "task_completed",
+    face: "yeah",
   },
 ];
 

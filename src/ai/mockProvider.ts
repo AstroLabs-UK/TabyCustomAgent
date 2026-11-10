@@ -48,6 +48,13 @@ export class MockAiProvider implements AiProvider {
 function detectTool(
   text: string
 ): { name: string; args: Record<string, unknown> } | null {
+  if (/react|do a (fun )?reaction|show (me )?(the )?(f1|car|dunk|trophy)|celebrate|cheer/i.test(text)) {
+    if (/f1|car|race|sprint/i.test(text)) return { name: "play_reaction", args: { animationId: "f1_car", force: true } };
+    if (/dunk|basketball/i.test(text)) return { name: "play_reaction", args: { animationId: "basketball_dunk", force: true } };
+    if (/trophy|win/i.test(text)) return { name: "play_reaction", args: { animationId: "trophy", force: true } };
+    const mood = /sad|disappoint/i.test(text) ? "sad" : /angry|mad/i.test(text) ? "angry" : /love|heart/i.test(text) ? "love" : /focus|lock/i.test(text) ? "focus" : /chill|relax/i.test(text) ? "chill" : "fun";
+    return { name: "play_reaction", args: { mood, force: true } };
+  }
   if (/what.*(today|on my plate)|today.?s overview|overview today/i.test(text)) {
     return { name: "get_today_overview", args: {} };
   }

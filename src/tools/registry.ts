@@ -40,6 +40,14 @@ import {
   focusMinutesToday,
 } from "../modules/focus";
 import { dayKey } from "../data/localDb";
+import {
+  CATALOG_ANIMATION_IDS,
+  GIF_PATHS,
+  REACTION_PRESETS,
+  gifForAnimationId,
+} from "../device/animationMap";
+import { FACE_LABELS, publishFaceState } from "../device/faceBus";
+import { getDevice } from "../device/registry";
 
 export type ToolResult = {
   ok: boolean;
@@ -397,6 +405,83 @@ const tools: Record<string, ToolHandler> = {
     }
   },
 
+
+  /** Force a Taby face reaction by catalog id or preset mood. */
+  play_reaction: (args) => {
+    const force = args.force !== false && args.force !== "false";
+    let id = String(args.animationId || args.id || "").trim();
+    const mood = String(args.mood || args.reaction || "").trim().toLowerCase();
+    if (!id && mood) {
+      const pool = REACTION_PRESETS[mood] || REACTION_PRESETS.fun;
+      id = pool[Math.floor(Math.random() * pool.length)];
+    }
+    if (!id) {
+      return {
+        ok: false,
+        message:
+          "animationId or mood required (moods: " +
+          Object.keys(REACTION_PRESETS).join(", ") +
+          ")",
+      };
+    }
+    if (!gifForAnimationId(id) && !(id in GIF_PATHS)) {
+      // allow unknown ids that exist in catalog list
+      if (!(CATALOG_ANIMATION_IDS as readonly string[]).includes(id)) {
+        return {
+          ok: false,
+          message: `Unknown animation “${id}”. Use list_reactions to see options.`,
+        };
+      }
+    }
+    const label = FACE_LABELS[id] || id;
+    publishFaceState({
+      animationId: id,
+      label,
+      at: Date.now(),
+      connected: true,
+      force,
+    });
+    // Also try device play when connected
+    try {
+      const transport = (String(args.transport || "mock") as
+        | "mock"
+        | "ble"
+        | "usb"
+        | "wifi");
+      const dev = getDevice(transport);
+      void Promise.resolve(dev.play(id)).catch(() => undefined);
+    } catch {
+      /* ignore */
+    }
+    return {
+      ok: true,
+      message: force
+        ? `Forced reaction: ${label} (${id})`
+        : `Playing reaction: ${label} (${id})`,
+      data: { animationId: id, label, force },
+    };
+  },
+
+  list_reactions: (args) => {
+    const mood = String(args.mood || "").trim().toLowerCase();
+    if (mood && REACTION_PRESETS[mood]) {
+      return {
+        ok: true,
+        message: `${REACTION_PRESETS[mood].length} animations for mood “${mood}”`,
+        data: REACTION_PRESETS[mood],
+      };
+    }
+    return {
+      ok: true,
+      message: `${CATALOG_ANIMATION_IDS.length} catalog animations; moods: ${Object.keys(REACTION_PRESETS).join(", ")}`,
+      data: {
+        moods: REACTION_PRESETS,
+        sample: CATALOG_ANIMATION_IDS.slice(0, 30),
+        total: CATALOG_ANIMATION_IDS.length,
+      },
+    };
+  },
+
   /** Lightweight web search (DuckDuckGo Instant Answer — no API key). */
   web_search: async (args) => {
     const q = str(args.query);
@@ -602,6 +687,16 @@ export const TOOL_DEFINITIONS = [
   def("calculate", "Evaluate a simple arithmetic expression", {
     expression: { type: "string" },
   }, ["expression"]),
+  def("play_reaction", "Play or FORCE a Taby face GIF reaction. Use mood (celebrate,fun,happy,sad,angry,focus,chill,love,thinking,greeting) or animationId from the catalog (e.g. f1_car, basketball_dunk, trophy). force=true interrupts current animation.", {
+    animationId: { type: "string" },
+    id: { type: "string" },
+    mood: { type: "string" },
+    reaction: { type: "string" },
+    force: { type: "boolean", description: "default true — force immediately" },
+  }),
+  def("list_reactions", "List reaction moods or sample catalog animation ids", {
+    mood: { type: "string" },
+  }),
   def("web_search", "Search the web (DuckDuckGo instant answers)", {
     query: { type: "string" },
   }, ["query"]),
@@ -652,6 +747,7 @@ Rules:
 4. For current date/time questions use get_current_time.
 5. For general knowledge / news / facts use web_search or wiki_summary, then answer from the tool data.
 6. For math use calculate. To open a link use open_url.
+9. To show a face reaction use play_reaction with mood or animationId (force=true by default). Catalog includes f1_car, basketball_dunk, trophy, blush, etc.
 7. Be concise. After tools run, confirm what changed in plain language using the tool results.
 8. Never invent tasks/notes that are not in tool results when the user asks what is stored.
 
