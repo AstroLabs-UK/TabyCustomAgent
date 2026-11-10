@@ -2491,3 +2491,17 @@ html, body, #root {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.5) !important;
 }
+
+/* Firmware A4 → PNG nav icons */
+.nav-a4-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+.hud-nav-cell--official .nav-a4-icon {
+  filter: none;
+}
