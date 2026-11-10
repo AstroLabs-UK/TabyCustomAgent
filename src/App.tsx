@@ -46,13 +46,21 @@ import {
   resolveFaceAnimationForReminder,
   tickAllReminders,
 } from "./modules/reminders";
-import { invokeTool, SYSTEM_TOOL_PROMPT } from "./tools/registry";
-import { tickReminders } from "./modules/reminders";
 import { invokeToolAsync, SYSTEM_TOOL_PROMPT } from "./tools/registry";
 import { LocalFacePanel } from "./device/LocalFacePanel";
 import { typewriterToward } from "./chat/typewriter";
 import { publishFaceState, FACE_LABELS } from "./device/faceBus";
 import { applyOverlayMode } from "./overlay/windowChrome";
+import { OnboardingWizard } from "./onboarding/OnboardingWizard";
+import { SettingsPanel } from "./settings/SettingsPanel";
+import { ZoneVisualizer } from "./overlay/ZoneVisualizer";
+import {
+  clampZone,
+  pushEdgeZoneToRust,
+  toRuntime,
+} from "./overlay/edgeZone";
+import { DEFAULT_EDGE_ZONE } from "./settings/types";
+import { PROVIDER_PRESETS } from "./ai/types";
 
 function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
@@ -72,6 +80,8 @@ function App() {
   >([]);
   const [voicePhase, setVoicePhase] = useState<RecordingPhase>("idle");
   const [recSeconds, setRecSeconds] = useState(0);
+  const [zoneViz, setZoneViz] = useState(false);
+  const [forceOnboarding, setForceOnboarding] = useState(false);
 
   useEffect(() => {
     setSettings(loadSettings());
@@ -436,142 +446,15 @@ function App() {
         return <ThisWeekView />;
       case "settings":
         return (
-          <div className="overlay-settings">
-            <h2>Settings</h2>
-            <div className="form-grid">
-              <label className="field">
-                <span>Dwell (ms)</span>
-                <input
-                  type="number"
-                  min={100}
-                  max={3000}
-                  step={50}
-                  value={settings.hud.dwellMs}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      hud: {
-                        ...s.hud,
-                        dwellMs: Number(e.target.value) || 500,
-                      },
-                    }))
-                  }
-                />
-              </label>
-              <label className="field">
-                <span>How it opens — hover area</span>
-                <select
-                  value={settings.hud.hoverActivationArea ?? "center"}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      hud: {
-                        ...s.hud,
-                        hoverActivationArea: e.target
-                          .value as AppSettings["hud"]["hoverActivationArea"],
-                      },
-                    }))
-                  }
-                >
-                  <option value="center">Top center only</option>
-                  <option value="wide">Wide top band</option>
-                  <option value="full">Full top edge</option>
-                </select>
-                <span className="hint">
-                  Limits which part of the top edge opens Taby so browser tabs
-                  and other edge gestures are less likely to collide.
-                </span>
-              </label>
-              <label className="field checkbox-field">
-                <span>Face reactions</span>
-                <input
-                  type="checkbox"
-                  checked={settings.hud.faceReactionsEnabled !== false}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      hud: {
-                        ...s.hud,
-                        faceReactionsEnabled: e.target.checked,
-                      },
-                    }))
-                  }
-                />
-              </label>
-              <label className="field">
-                <span>Provider</span>
-                <select
-                  value={settings.ai.provider}
-                  onChange={(e) =>
-                    updateAi(
-                      "provider",
-                      e.target.value as AppSettings["ai"]["provider"]
-                    )
-                  }
-                >
-                  <option value="mock">Mock</option>
-                  <option value="groq">Groq</option>
-                  <option value="openai-compatible">OpenAI-compatible</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>API endpoint</span>
-                <input
-                  type="url"
-                  value={settings.ai.baseUrl}
-                  onChange={(e) => updateAi("baseUrl", e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>API key</span>
-                <input
-                  type="password"
-                  autoComplete="off"
-                  value={settings.ai.apiKey}
-                  onChange={(e) => updateAi("apiKey", e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>Model</span>
-                <input
-                  type="text"
-                  value={settings.ai.model}
-                  onChange={(e) => updateAi("model", e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>Device transport</span>
-                <select
-                  value={settings.device.transport}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      device: {
-                        ...s.device,
-                        transport: e.target
-                          .value as AppSettings["device"]["transport"],
-                      },
-                    }))
-                  }
-                >
-                  <option value="mock">Mock</option>
-                  <option value="ble">BLE</option>
-                  <option value="usb">USB</option>
-                  <option value="wifi">Wi-Fi</option>
-                </select>
-              </label>
-            </div>
-            <div className="row-actions">
-              <button type="button" className="btn primary" onClick={handleSave}>
-                Save
-              </button>
-              <button type="button" className="btn" onClick={handleConnectMock}>
-                Connect mock device
-              </button>
-              {saved && <span className="hint">Saved</span>}
-            </div>
-            {statusLine && <p className="hint">{statusLine}</p>}
-          </div>
+          <SettingsPanel
+            settings={settings}
+            setSettings={setSettings}
+            saved={saved}
+            onSave={handleSave}
+            onConnectMock={() => void handleConnectMock()}
+            onVisualizeZone={() => setZoneViz(true)}
+            onReplayOnboarding={() => setForceOnboarding(true)}
+          />
         );
       default:
         return null;
@@ -653,7 +536,6 @@ function App() {
         connectionLabel={connectionLabel}
         connectionOk={connectionOk}
         showHotZoneHint={false}
-        hoverActivationArea={settings.hud.hoverActivationArea ?? "center"}
         pendingAttachments={pendingAttachments}
         onFilesSelected={(files) => {
           void addFiles(files);
@@ -680,6 +562,12 @@ function App() {
         modulePanel={modulePanel}
         activeModuleId={activeModule}
         onCloseModule={() => setActiveModule(null)}
+        localFace={
+          settings.hud.localFaceEnabled !== false &&
+          !(deviceState === "connected" && settings.device.transport !== "mock") ? (
+            <LocalFacePanel />
+          ) : null
+        }
       />
     </div>
   );

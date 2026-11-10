@@ -25,6 +25,8 @@ export interface AppSettings {
     /** Write startup/runtime logs to disk (optional). */
     diagnosticsEnabled: boolean;
     edgeZone: EdgeZone;
+    /** Where along the top edge the dwell activates */
+    hoverActivationArea?: "center" | "full" | "left" | "right";
   };
   device: {
     transport: DeviceTransport;
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     localFaceEnabled: true,
     diagnosticsEnabled: false,
     edgeZone: { ...DEFAULT_EDGE_ZONE },
+    hoverActivationArea: "center",
   },
   device: {
     transport: "mock",
