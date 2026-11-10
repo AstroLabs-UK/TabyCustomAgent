@@ -14,9 +14,6 @@ import {
   openFaceWindow,
 } from "./device";
 import { completeStream, aiStatusLabel, aiStatusOk } from "./ai";
-import { PROVIDER_PRESETS } from "./ai/types";
-import { SettingsPanel } from "./settings/SettingsPanel";
-import { OnboardingWizard } from "./onboarding/OnboardingWizard";
 import { HudOverlay } from "./hud";
 import type { NavCellId } from "./hud";
 import {
@@ -45,16 +42,17 @@ import {
   TodayView,
   ThisWeekView,
 } from "./modules/ModuleViews";
+import {
+  resolveFaceAnimationForReminder,
+  tickAllReminders,
+} from "./modules/reminders";
+import { invokeTool, SYSTEM_TOOL_PROMPT } from "./tools/registry";
 import { tickReminders } from "./modules/reminders";
 import { invokeToolAsync, SYSTEM_TOOL_PROMPT } from "./tools/registry";
 import { LocalFacePanel } from "./device/LocalFacePanel";
 import { typewriterToward } from "./chat/typewriter";
 import { publishFaceState, FACE_LABELS } from "./device/faceBus";
 import { applyOverlayMode } from "./overlay/windowChrome";
-import { ZoneVisualizer } from "./overlay/ZoneVisualizer";
-import { pushEdgeZoneToRust, toRuntime, clampZone } from "./overlay/edgeZone";
-import type { EdgeZone } from "./settings/types";
-import { DEFAULT_EDGE_ZONE } from "./settings/types";
 
 function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
@@ -74,34 +72,35 @@ function App() {
   >([]);
   const [voicePhase, setVoicePhase] = useState<RecordingPhase>("idle");
   const [recSeconds, setRecSeconds] = useState(0);
-  const [zoneViz, setZoneViz] = useState(false);
-  const [forceOnboarding, setForceOnboarding] = useState(false);
 
   useEffect(() => {
-    const s = loadSettings();
-    setSettings(s);
+    setSettings(loadSettings());
     setChat(loadChatState());
-    void applyOverlayMode("expanded"); // first paint — stay visible until user dismisses
-    void pushEdgeZoneToRust(
-      toRuntime(
-        s.hud.edgeZone ?? DEFAULT_EDGE_ZONE,
-        s.hud.dwellMs,
-        s.hud.dwellBrowserMs ?? 700,
-        s.hud.dwellGameMs ?? 1000
-      )
-    );
+    void applyOverlayMode("expanded"); // first paint; click-off → tray
   }, []);
+
+  // Push hover activation area to the native edge watcher (when window is hidden).
+  useEffect(() => {
+    const area = settings.hud.hoverActivationArea ?? "center";
+    void (async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        await invoke("set_hover_activation_area", { area });
+      } catch {
+        // Browser / non-Tauri: no-op
+      }
+    })();
+  }, [settings.hud.hoverActivationArea]);
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      const fired = tickReminders(Date.now());
+      const fired = tickAllReminders(Date.now());
       if (fired.length) {
         setStatusLine(`Reminder: ${fired[0].title}`);
-        if (
-          fired[0].faceNudge &&
-          mockDevice.getConnectionState() === "connected"
-        ) {
-          void mockDevice.play("drink_water").catch(() => {
+        if (mockDevice.getConnectionState() === "connected") {
+          const anim =
+            resolveFaceAnimationForReminder(fired[0]) ?? "confirmation";
+          void mockDevice.play(anim).catch(() => {
             void mockDevice.play("confirmation").catch(() => undefined);
           });
         }
@@ -134,32 +133,7 @@ function App() {
   }
 
   function handleSave() {
-    const next = {
-      ...settings,
-      hud: {
-        ...settings.hud,
-        edgeZone: clampZone(settings.hud.edgeZone ?? DEFAULT_EDGE_ZONE),
-        dwellBrowserMs: settings.hud.dwellBrowserMs ?? 700,
-        dwellGameMs: settings.hud.dwellGameMs ?? 1000,
-      },
-    };
-    saveSettings(next);
-    setSettings(next);
-    void pushEdgeZoneToRust(
-      toRuntime(
-        next.hud.edgeZone,
-        next.hud.dwellMs,
-        next.hud.dwellBrowserMs,
-        next.hud.dwellGameMs
-      )
-    );
-    void import("@tauri-apps/api/core")
-      .then(({ invoke }) =>
-        invoke("set_diagnostics_enabled", {
-          enabled: next.hud.diagnosticsEnabled === true,
-        })
-      )
-      .catch(() => undefined);
+    saveSettings(settings);
     setSaved(true);
   }
 
@@ -276,6 +250,7 @@ function App() {
             connected: true,
           });
         }
+        const toolNotes: string[] = [];
         for await (const chunk of completeStream(forApi, settings.ai)) {
           if (chunk.type === "tool_call" && chunk.toolName) {
             const args = (chunk.toolArgs ?? {}) as Record<string, unknown>;
@@ -296,7 +271,12 @@ function App() {
           }
           if (chunk.type === "token" && chunk.text) {
             acc += chunk.text;
-            tw.sync(acc);
+            const updated = replaceAssistantTail(conv, acc);
+            conv = updated;
+            conversations = conversations.map((c) =>
+              c.id === conv.id ? updated : c
+            );
+            persistChat({ conversations, activeId: conv.id });
           }
           if (chunk.type === "error") {
             const errText = acc
@@ -313,7 +293,11 @@ function App() {
             return;
           }
         }
-        // Finish typewriter — no tool ✓ lines in the bubble
+        if (toolNotes.length) {
+          acc = ((acc ? acc + "\n\n" : "") +
+            toolNotes.map((n) => `✓ ${n}`).join("\n")).trim();
+        }
+        // Finish typewriter
         tw.sync(acc);
         await new Promise((r) =>
           setTimeout(r, Math.min(4000, Math.max(80, acc.length * 12)))
@@ -376,7 +360,7 @@ function App() {
     deviceOk && settings.device.transport !== "mock";
   const aiOk = aiStatusOk(settings.ai);
   const connectionOk = deviceOk || aiOk;
-  const connectionLabel = `${deviceOk ? "Taby connected" : "Taby offline"} · ${aiStatusLabel(settings.ai)}`;
+  const connectionLabel = `${deviceOk ? "Device connected" : "Device offline"} · ${aiStatusLabel(settings.ai)}`;
 
   function renderModule() {
     if (!activeModule) return null;
@@ -385,42 +369,38 @@ function App() {
         return <HomeView deviceLabel={connectionLabel} />;
       case "chat":
         return (
-          <ChatView
-            conversation={activeConv}
-            streaming={streaming}
-            conversations={chat.conversations}
-            onNewChat={() => {
-              const conv = createConversation();
-              persistChat({
-                conversations: [conv, ...chat.conversations],
-                activeId: conv.id,
-              });
-            }}
-            onSelect={(id) => persistChat({ ...chat, activeId: id })}
-            onDelete={(id) => {
-              persistChat(deleteConversation(chat, id));
-            }}
-            footer={
-              <div
-                className={`tc-chat__voice${
-                  voicePhase === "recording" ? " is-recording" : ""
-                }`}
+          <>
+            <ChatView
+              conversation={activeConv}
+              streaming={streaming}
+              conversations={chat.conversations}
+              onNewChat={() => {
+                const conv = createConversation();
+                persistChat({
+                  conversations: [conv, ...chat.conversations],
+                  activeId: conv.id,
+                });
+              }}
+              onSelect={(id) => persistChat({ ...chat, activeId: id })}
+              onDelete={(id) => {
+                persistChat(deleteConversation(chat, id));
+              }}
+            />
+            <div
+              className={`voice-bar${voicePhase === "recording" ? " is-recording" : ""}`}
+            >
+              <button
+                type="button"
+                className="btn"
+                onClick={() => void handleVoiceClick()}
               >
-                <button
-                  type="button"
-                  className="tc-chat__btn"
-                  onClick={() => void handleVoiceClick()}
-                >
-                  {voicePhase === "recording"
-                    ? `Stop (${recSeconds}s)`
-                    : "Voice (mock)"}
-                </button>
-                {statusLine ? (
-                  <span className="tc-chat__status">{statusLine}</span>
-                ) : null}
-              </div>
-            }
-          />
+                {voicePhase === "recording"
+                  ? `Stop (${recSeconds}s)`
+                  : "Voice (mock)"}
+              </button>
+              {statusLine && <span className="hint">{statusLine}</span>}
+            </div>
+          </>
         );
       case "tasks":
         return <TasksView />;
@@ -456,15 +436,142 @@ function App() {
         return <ThisWeekView />;
       case "settings":
         return (
-          <SettingsPanel
-            settings={settings}
-            setSettings={setSettings}
-            saved={saved}
-            onSave={handleSave}
-            onConnectMock={handleConnectMock}
-            onVisualizeZone={() => setZoneViz(true)}
-            onReplayOnboarding={() => setForceOnboarding(true)}
-          />
+          <div className="overlay-settings">
+            <h2>Settings</h2>
+            <div className="form-grid">
+              <label className="field">
+                <span>Dwell (ms)</span>
+                <input
+                  type="number"
+                  min={100}
+                  max={3000}
+                  step={50}
+                  value={settings.hud.dwellMs}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      hud: {
+                        ...s.hud,
+                        dwellMs: Number(e.target.value) || 500,
+                      },
+                    }))
+                  }
+                />
+              </label>
+              <label className="field">
+                <span>How it opens — hover area</span>
+                <select
+                  value={settings.hud.hoverActivationArea ?? "center"}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      hud: {
+                        ...s.hud,
+                        hoverActivationArea: e.target
+                          .value as AppSettings["hud"]["hoverActivationArea"],
+                      },
+                    }))
+                  }
+                >
+                  <option value="center">Top center only</option>
+                  <option value="wide">Wide top band</option>
+                  <option value="full">Full top edge</option>
+                </select>
+                <span className="hint">
+                  Limits which part of the top edge opens Taby so browser tabs
+                  and other edge gestures are less likely to collide.
+                </span>
+              </label>
+              <label className="field checkbox-field">
+                <span>Face reactions</span>
+                <input
+                  type="checkbox"
+                  checked={settings.hud.faceReactionsEnabled !== false}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      hud: {
+                        ...s.hud,
+                        faceReactionsEnabled: e.target.checked,
+                      },
+                    }))
+                  }
+                />
+              </label>
+              <label className="field">
+                <span>Provider</span>
+                <select
+                  value={settings.ai.provider}
+                  onChange={(e) =>
+                    updateAi(
+                      "provider",
+                      e.target.value as AppSettings["ai"]["provider"]
+                    )
+                  }
+                >
+                  <option value="mock">Mock</option>
+                  <option value="groq">Groq</option>
+                  <option value="openai-compatible">OpenAI-compatible</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>API endpoint</span>
+                <input
+                  type="url"
+                  value={settings.ai.baseUrl}
+                  onChange={(e) => updateAi("baseUrl", e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>API key</span>
+                <input
+                  type="password"
+                  autoComplete="off"
+                  value={settings.ai.apiKey}
+                  onChange={(e) => updateAi("apiKey", e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>Model</span>
+                <input
+                  type="text"
+                  value={settings.ai.model}
+                  onChange={(e) => updateAi("model", e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>Device transport</span>
+                <select
+                  value={settings.device.transport}
+                  onChange={(e) =>
+                    setSettings((s) => ({
+                      ...s,
+                      device: {
+                        ...s.device,
+                        transport: e.target
+                          .value as AppSettings["device"]["transport"],
+                      },
+                    }))
+                  }
+                >
+                  <option value="mock">Mock</option>
+                  <option value="ble">BLE</option>
+                  <option value="usb">USB</option>
+                  <option value="wifi">Wi-Fi</option>
+                </select>
+              </label>
+            </div>
+            <div className="row-actions">
+              <button type="button" className="btn primary" onClick={handleSave}>
+                Save
+              </button>
+              <button type="button" className="btn" onClick={handleConnectMock}>
+                Connect mock device
+              </button>
+              {saved && <span className="hint">Saved</span>}
+            </div>
+            {statusLine && <p className="hint">{statusLine}</p>}
+          </div>
         );
       default:
         return null;
@@ -539,6 +646,7 @@ function App() {
         connectionLabel={connectionLabel}
         connectionOk={connectionOk}
         showHotZoneHint={false}
+        hoverActivationArea={settings.hud.hoverActivationArea ?? "center"}
         pendingAttachments={pendingAttachments}
         onFilesSelected={(files) => {
           void addFiles(files);
@@ -565,12 +673,6 @@ function App() {
         modulePanel={modulePanel}
         activeModuleId={activeModule}
         onCloseModule={() => setActiveModule(null)}
-        localFace={
-          settings.hud.localFaceEnabled !== false &&
-          !physicalDeviceConnected ? (
-            <LocalFacePanel />
-          ) : null
-        }
       />
     </div>
   );
