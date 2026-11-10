@@ -30,6 +30,8 @@ export interface AppSettings {
     transport: DeviceTransport;
     preferredId: string;
   };
+  /** First-run wizard finished */
+  onboardingCompleted: boolean;
 }
 
 export const DEFAULT_EDGE_ZONE: EdgeZone = {
@@ -60,4 +62,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
     transport: "mock",
     preferredId: "",
   },
+  onboardingCompleted: false,
 };

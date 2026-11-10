@@ -15,6 +15,8 @@ import {
 } from "./device";
 import { completeStream, aiStatusLabel, aiStatusOk } from "./ai";
 import { PROVIDER_PRESETS } from "./ai/types";
+import { SettingsPanel } from "./settings/SettingsPanel";
+import { OnboardingWizard } from "./onboarding/OnboardingWizard";
 import { HudOverlay } from "./hud";
 import type { NavCellId } from "./hud";
 import {
@@ -73,6 +75,7 @@ function App() {
   const [voicePhase, setVoicePhase] = useState<RecordingPhase>("idle");
   const [recSeconds, setRecSeconds] = useState(0);
   const [zoneViz, setZoneViz] = useState(false);
+  const [forceOnboarding, setForceOnboarding] = useState(false);
 
   useEffect(() => {
     const s = loadSettings();
@@ -446,201 +449,15 @@ function App() {
         return <ThisWeekView />;
       case "settings":
         return (
-          <div className="overlay-settings">
-            <h2>Settings</h2>
-            <div className="form-grid">
-              <label className="field">
-                <span>Dwell (ms)</span>
-                <input
-                  type="number"
-                  min={100}
-                  max={3000}
-                  step={50}
-                  value={settings.hud.dwellMs}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      hud: {
-                        ...s.hud,
-                        dwellMs: Number(e.target.value) || 500,
-                      },
-                    }))
-                  }
-                />
-              </label>
-              <label className="field checkbox-field">
-                <span>Face reactions</span>
-                <input
-                  type="checkbox"
-                  checked={settings.hud.faceReactionsEnabled !== false}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      hud: {
-                        ...s.hud,
-                        faceReactionsEnabled: e.target.checked,
-                      },
-                    }))
-                  }
-                />
-              </label>
-              <label className="field">
-                <span>Provider</span>
-                <select
-                  value={settings.ai.provider}
-                  onChange={(e) => {
-                    const provider = e.target
-                      .value as AppSettings["ai"]["provider"];
-                    const preset = PROVIDER_PRESETS[provider];
-                    setSettings((s) => ({
-                      ...s,
-                      ai: {
-                        ...s.ai,
-                        provider,
-                        baseUrl: preset?.baseUrl || s.ai.baseUrl,
-                        model: preset?.model || s.ai.model,
-                      },
-                    }));
-                    setSaved(false);
-                  }}
-                >
-                  <option value="mock">Mock</option>
-                  <option value="groq">Groq</option>
-                  <option value="openclaw">OpenClaw</option>
-                  <option value="hermes">Hermes</option>
-                  <option value="ollama">Ollama</option>
-                  <option value="openai-compatible">OpenAI-compatible</option>
-                  <option value="custom">Custom endpoint</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>API endpoint</span>
-                <input
-                  type="url"
-                  value={settings.ai.baseUrl}
-                  onChange={(e) => updateAi("baseUrl", e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>API key</span>
-                <input
-                  type="password"
-                  autoComplete="off"
-                  value={settings.ai.apiKey}
-                  onChange={(e) => updateAi("apiKey", e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>Model</span>
-                <input
-                  type="text"
-                  value={settings.ai.model}
-                  onChange={(e) => updateAi("model", e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>Device transport</span>
-                <select
-                  value={settings.device.transport}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      device: {
-                        ...s.device,
-                        transport: e.target
-                          .value as AppSettings["device"]["transport"],
-                      },
-                    }))
-                  }
-                >
-                  <option value="mock">Mock</option>
-                  <option value="ble">BLE</option>
-                  <option value="usb">USB</option>
-                  <option value="wifi">Wi-Fi</option>
-                </select>
-              </label>
-            </div>
-            <h3 style={{ marginTop: 16 }}>Activation zone</h3>
-            <p className="hint">
-              Top-center hot zone for opening from tray. Dwell: 0.5s apps · 0.7s
-              browsers · 1s games (auto-detected).
-            </p>
-            <div className="form-grid">
-              <label className="field">
-                <span>Productivity dwell (ms)</span>
-                <input
-                  type="number"
-                  min={200}
-                  max={3000}
-                  step={50}
-                  value={settings.hud.dwellMs}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      hud: { ...s.hud, dwellMs: Number(e.target.value) || 500 },
-                    }))
-                  }
-                />
-              </label>
-              <label className="field">
-                <span>Browser dwell (ms)</span>
-                <input
-                  type="number"
-                  min={200}
-                  max={3000}
-                  step={50}
-                  value={settings.hud.dwellBrowserMs ?? 700}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      hud: {
-                        ...s.hud,
-                        dwellBrowserMs: Number(e.target.value) || 700,
-                      },
-                    }))
-                  }
-                />
-              </label>
-              <label className="field">
-                <span>Game dwell (ms)</span>
-                <input
-                  type="number"
-                  min={200}
-                  max={5000}
-                  step={50}
-                  value={settings.hud.dwellGameMs ?? 1000}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      hud: {
-                        ...s.hud,
-                        dwellGameMs: Number(e.target.value) || 1000,
-                      },
-                    }))
-                  }
-                />
-              </label>
-            </div>
-            <div className="row-actions">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => setZoneViz(true)}
-              >
-                Visualise / move zone
-              </button>
-            </div>
-            <div className="row-actions">
-              <button type="button" className="btn primary" onClick={handleSave}>
-                Save
-              </button>
-              <button type="button" className="btn" onClick={handleConnectMock}>
-                Connect mock device
-              </button>
-              {saved && <span className="hint">Saved</span>}
-            </div>
-            {statusLine && <p className="hint">{statusLine}</p>}
-          </div>
+          <SettingsPanel
+            settings={settings}
+            setSettings={setSettings}
+            saved={saved}
+            onSave={handleSave}
+            onConnectMock={handleConnectMock}
+            onVisualizeZone={() => setZoneViz(true)}
+            onReplayOnboarding={() => setForceOnboarding(true)}
+          />
         );
       default:
         return null;
@@ -651,6 +468,25 @@ function App() {
   const modulePanel = moduleInner ? (
     <div className="hud-module-card">{moduleInner}</div>
   ) : null;
+
+  const showOnboarding =
+    forceOnboarding || settings.onboardingCompleted === false;
+
+  if (showOnboarding && !zoneViz) {
+    return (
+      <div className="overlay-root">
+        <OnboardingWizard
+          settings={settings}
+          setSettings={setSettings}
+          onFinish={(next) => {
+            saveSettings(next);
+            setSettings(next);
+            setForceOnboarding(false);
+          }}
+        />
+      </div>
+    );
+  }
 
   if (zoneViz) {
     return (
