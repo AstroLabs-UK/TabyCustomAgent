@@ -1,20 +1,28 @@
 import type { DeviceFacade, DeviceTransport } from "./types";
 import { mockDevice } from "./mockDevice";
-import { bleDevice } from "./bleClient";
-import { usbDevice } from "./usbClient";
+
+/**
+ * Until real BLE/USB stacks land, all transports share the mock face + command log
+ * so Settings → Device always "works" in software. Hardware clients can replace later.
+ */
+function softwareDevice(transport: DeviceTransport): DeviceFacade {
+  // Proxy mock but advertise the selected transport name
+  return new Proxy(mockDevice, {
+    get(target, prop, receiver) {
+      if (prop === "transport") return transport;
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as DeviceFacade;
+}
 
 export function getDevice(transport: DeviceTransport): DeviceFacade {
   switch (transport) {
     case "ble":
-      return bleDevice;
     case "usb":
-      return usbDevice;
     case "wifi":
-      // Wi-Fi later — fall back to mock for software stages
-      return mockDevice;
     case "mock":
     default:
-      return mockDevice;
+      return softwareDevice(transport === "wifi" ? "wifi" : transport);
   }
 }
 

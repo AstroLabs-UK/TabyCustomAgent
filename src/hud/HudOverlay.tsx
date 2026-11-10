@@ -85,47 +85,80 @@ export function HudOverlay({
     void applyOverlayMode("compact");
   }, [visible]);
 
-  // Dynamic height + shrink face when stack would overflow the screen
+  /** Locked face scale — shrink when needed, only grow when UI gets shorter. */
+  const faceScaleRef = useRef(1);
+  const menuOpenRef = useRef(false);
+  menuOpenRef.current = menuOrPanelOpen;
+
+  // Dynamic height + one-way face shrink (no grow/shrink oscillation)
   useLayoutEffect(() => {
     if (!visible) return;
     const el = stageRef.current;
     if (!el) return;
 
     let raf = 0;
+    let measuring = false;
+
     const measure = () => {
+      if (measuring) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const maxH =
-          (typeof window !== "undefined" ? window.screen.availHeight : 900) -
-          36;
-        const faceEl = el.querySelector(
-          ".local-face-panel"
-        ) as HTMLElement | null;
+        measuring = true;
+        try {
+          const maxH =
+            (typeof window !== "undefined" ? window.screen.availHeight : 900) -
+            40;
+          const faceEl = el.querySelector(
+            ".local-face-panel"
+          ) as HTMLElement | null;
+          const total = el.getBoundingClientRect().height;
+          const faceH = faceEl?.getBoundingClientRect().height ?? 0;
+          const rest = Math.max(0, total - faceH);
+          const current = faceScaleRef.current;
+          const unscaledFace = faceH > 0 ? faceH / Math.max(current, 0.01) : 0;
 
-        // Measure with current scale
-        const total = el.getBoundingClientRect().height;
-        const faceH = faceEl?.getBoundingClientRect().height ?? 0;
-        const rest = Math.max(0, total - faceH);
+          let need = 1;
+          if (unscaledFace > 0 && rest + unscaledFace > maxH) {
+            need = Math.min(1, Math.max(0.45, (maxH - rest) / unscaledFace));
+          }
 
-        let nextScale = 1;
-        if (faceH > 0 && rest + faceH > maxH) {
-          const room = Math.max(80, maxH - rest);
-          // scale relative to unscaled face height
-          const unscaledFace = faceH / Math.max(faceScale, 0.01);
-          nextScale = Math.min(1, Math.max(0.45, room / unscaledFace));
+          let next = current;
+          if (need < current - 0.025) {
+            // Must shrink to fit
+            next = need;
+          } else if (!menuOpenRef.current && need > current + 0.08) {
+            // Only grow back when menu/module is closed and there's clear room
+            next = need;
+          } else if (!menuOpenRef.current && need >= 0.98) {
+            next = 1;
+          }
+          // While menu is open: never grow, only shrink if still overflowing
+
+          if (Math.abs(next - current) > 0.02) {
+            faceScaleRef.current = next;
+            setFaceScale(next);
+          }
+
+          // Fit window after layout settles
+          requestAnimationFrame(() => {
+            const h = el.getBoundingClientRect().height;
+            const w = Math.max(el.getBoundingClientRect().width, 320);
+            void fitOverlayToContent(Math.min(h, maxH), w + 24);
+          });
+        } finally {
+          measuring = false;
         }
-        if (Math.abs(nextScale - faceScale) > 0.02) {
-          setFaceScale(nextScale);
-          return; // remeasure after scale applies
-        }
-
-        const h = el.getBoundingClientRect().height;
-        const w = Math.max(el.getBoundingClientRect().width, 320);
-        void fitOverlayToContent(h, w + 24);
       });
     };
 
-    measure();
+    // Reset grow allowance when leaving menu/module
+    if (!menuOrPanelOpen) {
+      // allow next measure to expand toward 1
+      measure();
+    } else {
+      measure();
+    }
+
     const ro = new ResizeObserver(() => measure());
     ro.observe(el);
     window.addEventListener("resize", measure);
@@ -134,7 +167,7 @@ export function HudOverlay({
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [visible, phase, modulePanel, activeModuleId, localFace, expanded, faceScale]);
+  }, [visible, phase, modulePanel, activeModuleId, localFace, expanded]);
 
   useEffect(() => {
     let un: (() => void) | undefined;
@@ -154,9 +187,11 @@ export function HudOverlay({
   }, [onCloseModule]);
 
   const dismiss = useCallback(() => {
-    // Outside / Esc: module → close module; expanded menu → compact; else → tray
-    if (activeModuleId) {
+    // Outside click / Esc: close module + menu, then hide to tray
+    if (activeModuleId || modulePanel) {
       onCloseModule?.();
+      setPhase("compact");
+      // Second outside click will hide; first closes panel
       return;
     }
     if (phase === "expanded") {
@@ -164,7 +199,15 @@ export function HudOverlay({
       return;
     }
     dismissAll();
-  }, [activeModuleId, phase, onCloseModule, dismissAll]);
+  }, [activeModuleId, modulePanel, phase, onCloseModule, dismissAll]);
+
+  /** Hard close everything (used for true outside click when panel open) */
+  const dismissHard = useCallback(() => {
+    hasDismissedOnce.current = true;
+    onCloseModule?.();
+    setPhase("hidden");
+    timerRef.current?.pointerLeave();
+  }, [onCloseModule]);
 
   const toggleNav = useCallback(() => {
     onCloseModule?.();
@@ -200,7 +243,11 @@ export function HudOverlay({
   function handleBackdropPointer(e: React.MouseEvent | React.PointerEvent) {
     if (e.target === e.currentTarget) {
       e.preventDefault();
-      dismiss();
+      if (phase === "expanded" || activeModuleId || modulePanel) {
+        dismissHard();
+      } else {
+        dismiss();
+      }
     }
   }
 
@@ -231,19 +278,36 @@ export function HudOverlay({
   }
 
   function handleStagePointerLeave() {
-    // Keep open if nav or a module panel is up
-    if (phase === "expanded" || activeModuleId || modulePanel) {
-      clearLeaveHide();
-      return;
-    }
     clearLeaveHide();
     leaveHideTimer.current = setTimeout(() => {
+      // Leaving the HUD closes menus/modules and hides
       hasDismissedOnce.current = true;
+      onCloseModule?.();
       setPhase("hidden");
       timerRef.current?.pointerLeave();
-      onCloseModule?.();
-    }, 450);
+    }, 280);
   }
+
+
+  // Click anywhere outside the stage closes dropdowns / HUD
+  useEffect(() => {
+    if (!visible) return;
+    function onDocPointerDown(ev: PointerEvent) {
+      const stage = stageRef.current;
+      if (!stage) return;
+      const target = ev.target as Node | null;
+      if (target && stage.contains(target)) return;
+      // Outside the stack
+      if (phase === "expanded" || activeModuleId || modulePanel) {
+        dismissHard();
+      } else {
+        dismissAll();
+      }
+    }
+    // capture so we get it before other handlers
+    document.addEventListener("pointerdown", onDocPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
+  }, [visible, phase, activeModuleId, modulePanel, dismissHard, dismissAll]);
 
   return (
     <>
