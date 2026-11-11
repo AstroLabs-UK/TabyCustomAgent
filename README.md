@@ -2,11 +2,9 @@
 
 Local desktop overlay agent (Hey Taby–inspired) using **your** AI (Groq by default), not the official Taby cloud. Optional Physical Taby over BLE / USB / Wi‑Fi.
 
-**Repo:** [AstroLabs-UK/TabyCustomAgent](https://github.com/AstroLabs-UK/TabyCustomAgent)
-
 ## Install (Windows)
 
-1. Download the **setup .exe** from [Releases](https://github.com/AstroLabs-UK/TabyCustomAgent/releases).
+1. Download the **setup .exe** from the [Latest Release](https://github.com/AstroLabs-UK/TabyCustomAgent/releases/latest).
 2. Run it. If Windows says the app is unrecognized: **More info → Run anyway** (SmartScreen).
 3. Complete onboarding.
 4. Optional: connect a Physical Taby (USB first — can install firmware onto the device).
