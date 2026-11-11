@@ -5,8 +5,8 @@
 export type OverlayMode = "hidden" | "compact" | "scrim" | "expanded";
 
 const HUD_WIDTH = 420;
-const TOP_MARGIN = 12;
-const PAD = 16;
+const TOP_MARGIN = 0;
+const PAD = 8;
 
 async function getWin() {
   const { getCurrentWindow } = await import("@tauri-apps/api/window");

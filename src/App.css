@@ -1,12 +1,12 @@
 
-/* Dynamic shell — height follows content, not full screen */
+/* Dynamic shell — transparent overlay; only islands paint */
 html, body, #root {
   width: 100% !important;
   height: auto !important;
   min-height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
-  background: #16161a !important;
+  background: transparent !important;
   color: #f4f4f5 !important;
   overflow: hidden !important;
 }
@@ -16,16 +16,17 @@ html, body, #root {
   width: 100% !important;
   height: auto !important;
   min-height: 0 !important;
-  background: #16161a !important;
+  background: transparent !important;
   color: #f4f4f5 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  padding: 10px 10px 12px !important;
+  padding: 0 !important;
+  margin: 0 !important;
   box-sizing: border-box !important;
-  overflow: hidden !important;
-  pointer-events: auto !important;
+  overflow: visible !important;
+  pointer-events: none !important;
 }
 
 .hud-backdrop--overlay {
@@ -77,13 +78,13 @@ html, body, #root {
 }
 
 
-/* CRITICAL: solid shell so Windows WebView always paints content */
+/* Transparent overlay shell — only face/prompt islands paint */
 html, body, #root {
   width: 100% !important;
   height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
-  background: #16161a !important;
+  background: transparent !important;
   color: #f4f4f5 !important;
   overflow: hidden !important;
 }
@@ -91,17 +92,27 @@ html, body, #root {
 .overlay-root {
   width: 100% !important;
   height: 100% !important;
-  min-height: 100vh !important;
-  background: #16161a !important;
+  min-height: 100% !important;
+  background: transparent !important;
   color: #f4f4f5 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  padding: 12px !important;
+  padding: 0 !important;
+  margin: 0 !important;
   box-sizing: border-box !important;
-  overflow: auto !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+/* Onboarding / settings full pages still need a readable surface */
+.overlay-root:has(.tc-onboard),
+.overlay-root:has(.tc-settings),
+.overlay-root.is-solid {
+  background: #16161a !important;
   pointer-events: auto !important;
+  overflow: auto !important;
 }
 
 .hud-backdrop--overlay {
@@ -3420,4 +3431,45 @@ html, body, #root {
   .hud-module-card {
     animation: none !important;
   }
+}
+
+
+/* ─── Flush face island to top of screen; no outer card ───────── */
+html, body, #root {
+  background: transparent !important;
+}
+.overlay-root {
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.hud-backdrop--overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+}
+.hud-stage,
+.hud-stage--stack,
+.hud-stage--overlay {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  gap: 10px !important;
+  max-width: 400px !important;
+}
+/* Face sits flush at top of window/screen */
+.hud-stage--stack .local-face-panel,
+.local-face-panel {
+  margin-top: 0 !important;
+  border-radius: 0 0 42px 42px !important;
+  background: #000 !important;
 }
