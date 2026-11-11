@@ -220,38 +220,44 @@ function App() {
       persistChat({ conversations, activeId: conv.id });
 
       try {
-        const history = conv.messages
-          .filter((m) => m.content.length > 0 || m.role === "user")
+        // Build initial API message list (skip the empty assistant placeholder)
+        type ApiMsg = {
+          role: "system" | "user" | "assistant" | "tool";
+          content: string;
+          name?: string;
+          tool_call_id?: string;
+          tool_calls?: Array<{
+            id: string;
+            type: "function";
+            function: { name: string; arguments: string };
+          }>;
+        };
+        const history: ApiMsg[] = conv.messages
+          .filter(
+            (m) =>
+              m.role === "user" ||
+              (m.role === "assistant" && m.content.length > 0)
+          )
           .map((m) => ({
-            role: m.role as "user" | "assistant" | "system" | "tool",
+            role: m.role as "user" | "assistant",
             content: m.content,
           }));
-        const forApi = [
-          { role: "system" as const, content: SYSTEM_TOOL_PROMPT },
-          ...history.filter(
-            (m, i) =>
-              !(
-                i === history.length - 1 &&
-                m.role === "assistant" &&
-                !m.content
-              )
-          ),
+        let apiMessages: ApiMsg[] = [
+          { role: "system", content: SYSTEM_TOOL_PROMPT },
+          ...history,
         ];
 
         let acc = "";
-        /** True if play_reaction ran — skip "done" face so the reaction can finish. */
         let playedForcedReaction = false;
-        let display = "";
-        const tw = typewriterToward("", (visible) => {
-          display = visible;
-          const updated = replaceAssistantTail(conv, visible);
-          conv = updated;
-          conversations = conversations.map((c) =>
-            c.id === conv.id ? updated : c
-          );
-          persistChat({ conversations, activeId: conv.id });
-        }, { cps: 56 });
-        // Stay on working_loop while typing (unless a reaction is forced mid-stream)
+        const MAX_TOOL_STEPS = 6;
+        const activityLines: string[] = [];
+
+        const pushActivity = (line: string) => {
+          activityLines.push(line);
+          // Show a Grok/ChatGPT-style thinking strip
+          setStatusLine(activityLines.slice(-3).join(" · "));
+        };
+
         if (settings.hud.faceReactionsEnabled !== false) {
           publishFaceState({
             animationId: "working_loop",
@@ -260,61 +266,125 @@ function App() {
             connected: true,
           });
         }
-        const toolNotes: string[] = [];
-        for await (const chunk of completeStream(forApi, settings.ai)) {
-          if (chunk.type === "tool_call" && chunk.toolName) {
-            const args = (chunk.toolArgs ?? {}) as Record<string, unknown>;
-            const result = await invokeToolAsync(chunk.toolName, args);
-            // Never dump raw tool / JSON into the chat transcript
-            if (
-              chunk.toolName === "play_reaction" ||
-              chunk.toolName === "list_reactions"
-            ) {
-              playedForcedReaction = true;
-              // Keep status quiet for reactions — face is the feedback
-              setStatusLine("");
-            } else if (result.ok) {
-              setStatusLine(result.message);
-            } else {
-              setStatusLine(result.message);
+
+        pushActivity("Thinking…");
+
+        for (let step = 0; step < MAX_TOOL_STEPS; step++) {
+          let stepText = "";
+          const pendingTools: Array<{
+            id: string;
+            name: string;
+            args: Record<string, unknown>;
+          }> = [];
+
+          for await (const chunk of completeStream(apiMessages, settings.ai)) {
+            if (chunk.type === "tool_call" && chunk.toolName) {
+              pendingTools.push({
+                id:
+                  chunk.toolCallId ||
+                  `call_${chunk.toolName}_${Date.now()}_${pendingTools.length}`,
+                name: chunk.toolName,
+                args: (chunk.toolArgs ?? {}) as Record<string, unknown>,
+              });
+            }
+            if (chunk.type === "token" && chunk.text) {
+              stepText += chunk.text;
+              acc = stepText;
+              const updated = replaceAssistantTail(conv, acc);
+              conv = updated;
+              conversations = conversations.map((c) =>
+                c.id === conv.id ? updated : c
+              );
+              persistChat({ conversations, activeId: conv.id });
+            }
+            if (chunk.type === "error") {
+              const errText = acc
+                ? `${acc}\n\n_(${chunk.error})_`
+                : `Error: ${chunk.error}`;
+              const updated = replaceAssistantTail(conv, errText);
+              conv = updated;
+              conversations = conversations.map((c) =>
+                c.id === conv.id ? updated : c
+              );
+              persistChat({ conversations, activeId: conv.id });
+              setStatusLine(chunk.error ?? "error");
+              await orch.onTurnError(chunk.error);
+              return;
             }
           }
-          if (chunk.type === "token" && chunk.text) {
-            acc += chunk.text;
-            const updated = replaceAssistantTail(conv, acc);
-            conv = updated;
-            conversations = conversations.map((c) =>
-              c.id === conv.id ? updated : c
-            );
-            persistChat({ conversations, activeId: conv.id });
+
+          // No tools → final answer already streamed
+          if (pendingTools.length === 0) {
+            break;
           }
-          if (chunk.type === "error") {
-            const errText = acc
-              ? `${acc}\n\n_(${chunk.error})_`
-              : `Error: ${chunk.error}`;
-            const updated = replaceAssistantTail(conv, errText);
-            conv = updated;
-            conversations = conversations.map((c) =>
-              c.id === conv.id ? updated : c
-            );
-            persistChat({ conversations, activeId: conv.id });
-            setStatusLine(chunk.error ?? "error");
-            await orch.onTurnError(chunk.error);
-            return;
+
+          // Append assistant message that requested the tools
+          const toolCallsPayload = pendingTools.map((t) => ({
+            id: t.id,
+            type: "function" as const,
+            function: {
+              name: t.name,
+              arguments: JSON.stringify(t.args ?? {}),
+            },
+          }));
+          apiMessages.push({
+            role: "assistant",
+            content: stepText || "",
+            tool_calls: toolCallsPayload,
+          });
+
+          // Run each tool and feed results back
+          for (const t of pendingTools) {
+            pushActivity(`Running ${t.name}…`);
+            const result = await invokeToolAsync(t.name, t.args);
+            const resultPayload = JSON.stringify({
+              ok: result.ok,
+              message: result.message,
+              data: result.data ?? null,
+            });
+            apiMessages.push({
+              role: "tool",
+              content: resultPayload,
+              tool_call_id: t.id,
+              name: t.name,
+            });
+
+            if (
+              t.name === "play_reaction" ||
+              t.name === "list_reactions"
+            ) {
+              playedForcedReaction = true;
+            } else {
+              pushActivity(
+                result.ok
+                  ? `✓ ${t.name}: ${result.message}`
+                  : `✗ ${t.name}: ${result.message}`
+              );
+            }
           }
+
+          // Reset accumulator for the next model turn (the written reply)
+          acc = "";
+          stepText = "";
+          const cleared = replaceAssistantTail(conv, "");
+          conv = cleared;
+          conversations = conversations.map((c) =>
+            c.id === conv.id ? cleared : c
+          );
+          persistChat({ conversations, activeId: conv.id });
+          pushActivity("Writing reply…");
         }
-        if (toolNotes.length) {
-          acc = ((acc ? acc + "\n\n" : "") +
-            toolNotes.map((n) => `✓ ${n}`).join("\n")).trim();
+
+        // Ensure final text is persisted
+        if (acc) {
+          const updated = replaceAssistantTail(conv, acc);
+          conv = updated;
+          conversations = conversations.map((c) =>
+            c.id === conv.id ? updated : c
+          );
+          persistChat({ conversations, activeId: conv.id });
         }
-        // Finish typewriter
-        tw.sync(acc);
-        await new Promise((r) =>
-          setTimeout(r, Math.min(4000, Math.max(80, acc.length * 12)))
-        );
-        tw.flush();
-        tw.dispose();
-        // Only play "done" if we did not force a reaction animation
+
         if (!playedForcedReaction) {
           await orch.onTurnDone();
         }
@@ -542,6 +612,7 @@ function App() {
     <div className="overlay-root tc-shell">
       <HudOverlay
         dwellMs={settings.hud.dwellMs}
+        leaveHideMs={settings.hud.leaveHideMs ?? 3000}
         connectionLabel={connectionLabel}
         connectionOk={connectionOk}
         showHotZoneHint={false}

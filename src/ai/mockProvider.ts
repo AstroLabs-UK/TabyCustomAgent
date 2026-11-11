@@ -15,17 +15,48 @@ export class MockAiProvider implements AiProvider {
       yield { type: "error", error: "aborted" };
       return;
     }
+
+    // If the last messages are tool results, synthesize a natural-language reply
+    const lastTool = [...messages].reverse().find((m) => m.role === "tool");
+    if (lastTool) {
+      const toolResults = messages.filter((m) => m.role === "tool").slice(-4);
+      const summary = toolResults
+        .map((m) => {
+          try {
+            const j = JSON.parse(m.content) as { message?: string; ok?: boolean };
+            return j.message || m.content.slice(0, 120);
+          } catch {
+            return m.content.slice(0, 120);
+          }
+        })
+        .join(" · ");
+      const reply = summary
+        ? `Done. ${summary}`
+        : "Done — I used the tools you asked for.";
+      for (const t of reply.split(/(\s+)/)) {
+        if (signal?.aborted) {
+          yield { type: "error", error: "aborted" };
+          return;
+        }
+        yield { type: "token", text: t };
+        await delay(4);
+      }
+      yield { type: "done" };
+      return;
+    }
+
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     const text = (lastUser?.content ?? "").toLowerCase();
 
     const tool = detectTool(text);
     if (tool) {
-      yield { type: "tool_call", toolName: tool.name, toolArgs: tool.args };
-      const reply = `I'll use ${tool.name}.`;
-      for (const t of reply.split(/(\s+)/)) {
-        yield { type: "token", text: t };
-        await delay(4);
-      }
+      // Emit only the tool call — the agent loop will run it and call us again
+      yield {
+        type: "tool_call",
+        toolName: tool.name,
+        toolArgs: tool.args,
+        toolCallId: `mock_${tool.name}_${Date.now()}`,
+      };
       yield { type: "done" };
       return;
     }

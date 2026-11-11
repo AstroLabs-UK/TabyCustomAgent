@@ -41,11 +41,22 @@ export class OpenAiCompatibleProvider implements AiProvider {
           temperature: config.temperature ?? 0.7,
           stream: true,
           tools: TOOL_DEFINITIONS,
-          messages: messages.map((m) => ({
-            role: m.role === "tool" ? "tool" : m.role,
-            content: m.content,
-            name: m.name,
-          })),
+          messages: messages.map((m) => {
+            const base: Record<string, unknown> = {
+              role: m.role,
+              content: m.content ?? "",
+            };
+            if (m.name) base.name = m.name;
+            if (m.role === "tool" && m.tool_call_id) {
+              base.tool_call_id = m.tool_call_id;
+            }
+            if (m.role === "assistant" && m.tool_calls?.length) {
+              base.tool_calls = m.tool_calls;
+              // Some providers want content null when tool_calls present
+              if (!m.content) base.content = null;
+            }
+            return base;
+          }),
         }),
         signal,
       });
@@ -77,7 +88,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
     let buffer = "";
     const toolBuf: Record<
       number,
-      { name: string; args: string }
+      { id: string; name: string; args: string }
     > = {};
 
     try {
@@ -103,6 +114,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
                   content?: string;
                   tool_calls?: Array<{
                     index?: number;
+                    id?: string;
                     function?: { name?: string; arguments?: string };
                   }>;
                 };
@@ -115,7 +127,14 @@ export class OpenAiCompatibleProvider implements AiProvider {
             if (delta?.tool_calls) {
               for (const tc of delta.tool_calls) {
                 const idx = tc.index ?? 0;
-                if (!toolBuf[idx]) toolBuf[idx] = { name: "", args: "" };
+                if (!toolBuf[idx]) {
+                  toolBuf[idx] = {
+                    id: tc.id || `call_${idx}_${Date.now()}`,
+                    name: "",
+                    args: "",
+                  };
+                }
+                if (tc.id) toolBuf[idx].id = tc.id;
                 if (tc.function?.name) toolBuf[idx].name += tc.function.name;
                 if (tc.function?.arguments)
                   toolBuf[idx].args += tc.function.arguments;
@@ -142,6 +161,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
         type: "tool_call",
         toolName: tc.name,
         toolArgs: args,
+        toolCallId: tc.id,
       };
     }
     yield { type: "done" };

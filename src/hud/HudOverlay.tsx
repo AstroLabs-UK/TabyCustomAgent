@@ -9,6 +9,8 @@ import { applyOverlayMode, fitOverlayToContent, onTrayShowRequest } from "../ove
 
 export type HudOverlayProps = {
   dwellMs: number;
+  /** Hide HUD after pointer leaves for this many ms (default 3000). Re-enter cancels. */
+  leaveHideMs?: number;
   connectionLabel: string;
   connectionOk: boolean;
   onPromptSubmit?: (text: string, attachments: ChatAttachment[]) => void;
@@ -26,6 +28,7 @@ export type HudOverlayProps = {
 
 export function HudOverlay({
   dwellMs,
+  leaveHideMs = 3000,
   connectionLabel,
   connectionOk,
   onPromptSubmit,
@@ -280,12 +283,12 @@ export function HudOverlay({
   function handleStagePointerLeave() {
     clearLeaveHide();
     leaveHideTimer.current = setTimeout(() => {
-      // Leaving the HUD closes menus/modules and hides
+      // Leaving the HUD closes menus/modules and hides (even if dropdown open)
       hasDismissedOnce.current = true;
       onCloseModule?.();
       setPhase("hidden");
       timerRef.current?.pointerLeave();
-    }, 280);
+    }, Math.max(300, leaveHideMs));
   }
 
 

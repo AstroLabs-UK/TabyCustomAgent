@@ -18,6 +18,8 @@ export interface AppSettings {
     dwellMs: number;
     dwellBrowserMs: number;
     dwellGameMs: number;
+    /** After pointer leaves the HUD, hide after this many ms (default 3000). Re-entering cancels. */
+    leaveHideMs: number;
     alwaysOnTop: boolean;
     faceReactionsEnabled: boolean;
     /** Show face GIFs on-screen (no physical Taby required). */
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     dwellMs: 500,
     dwellBrowserMs: 700,
     dwellGameMs: 1000,
+    leaveHideMs: 3000,
     alwaysOnTop: true,
     faceReactionsEnabled: true,
     localFaceEnabled: true,

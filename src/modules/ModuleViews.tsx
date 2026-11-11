@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  activeTasks,
+  archivedTasks,
   completeTask,
   createTask,
   deleteTask,
-  loadTasks,
+  restoreTask,
   type Task,
 } from "./tasks";
 import {
@@ -18,9 +20,11 @@ import {
   type WellnessToggle,
 } from "./reminders";
 import {
+  activeNotes,
+  archivedNotes,
   createNote,
   deleteNote,
-  loadNotes,
+  restoreNote,
   searchNotes,
   updateNote,
   type Note,
@@ -44,13 +48,63 @@ import {
 import { dayKey, addDays } from "../data/localDb";
 import { tasksDueOn, tasksOpen } from "./tasks";
 
+/** Trash icon → confirm with tick (soft-delete) */
+function SoftDeleteControls({
+  onConfirm,
+}: {
+  onConfirm: () => void;
+}) {
+  const [armed, setArmed] = useState(false);
+  return (
+    <span className="item-actions">
+      {!armed ? (
+        <button
+          type="button"
+          className="btn-icon danger-hover"
+          title="Archive"
+          aria-label="Archive"
+          onClick={() => setArmed(true)}
+        >
+          🗑
+        </button>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="btn-icon confirm-tick"
+            title="Confirm archive"
+            aria-label="Confirm archive"
+            onClick={() => {
+              onConfirm();
+              setArmed(false);
+            }}
+          >
+            ✓
+          </button>
+          <button
+            type="button"
+            className="btn-icon"
+            title="Cancel"
+            aria-label="Cancel"
+            onClick={() => setArmed(false)}
+          >
+            ✕
+          </button>
+        </>
+      )}
+    </span>
+  );
+}
+
 export function TasksView() {
-  const [tasks, setTasks] = useState<Task[]>(() => loadTasks());
+  const [tasks, setTasks] = useState<Task[]>(() => activeTasks());
+  const [archived, setArchived] = useState<Task[]>(() => archivedTasks());
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
 
   function refresh() {
-    setTasks(loadTasks());
+    setTasks(activeTasks());
+    setArchived(archivedTasks());
   }
 
   return (
@@ -96,20 +150,47 @@ export function TasksView() {
               <span>{t.title}</span>
               {t.dueDate && <em className="meta">{t.dueDate}</em>}
             </label>
-            <button
-              type="button"
-              className="btn-link"
-              onClick={() => {
+            <SoftDeleteControls
+              onConfirm={() => {
                 deleteTask(t.id);
                 refresh();
               }}
-            >
-              Delete
-            </button>
+            />
           </li>
         ))}
         {!tasks.length && <li className="hint">No tasks yet.</li>}
       </ul>
+      {archived.length > 0 && (
+        <details className="archive-section">
+          <summary>Archived ({archived.length}) — auto-clears after 5 days</summary>
+          <ul className="module-list">
+            {archived.map((t) => (
+              <li key={t.id} className="archive-item">
+                <span>{t.title}</span>
+                <span className="item-actions">
+                  <button
+                    type="button"
+                    className="btn-icon confirm-tick"
+                    title="Restore"
+                    onClick={() => {
+                      restoreTask(t.id);
+                      refresh();
+                    }}
+                  >
+                    ↺
+                  </button>
+                  <SoftDeleteControls
+                    onConfirm={() => {
+                      deleteTask(t.id, true);
+                      refresh();
+                    }}
+                  />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </section>
   );
 }
@@ -258,15 +339,17 @@ export function NotesView({
 }: {
   onAddToChat?: (text: string) => void;
 }) {
-  const [notes, setNotes] = useState<Note[]>(() => loadNotes());
+  const [notes, setNotes] = useState<Note[]>(() => activeNotes());
+  const [archived, setArchived] = useState<Note[]>(() => archivedNotes());
   const [q, setQ] = useState("");
   const [active, setActive] = useState<Note | null>(notes[0] ?? null);
 
   const visible = q.trim() ? searchNotes(q) : notes;
 
   function refresh() {
-    const n = loadNotes();
+    const n = activeNotes();
     setNotes(n);
+    setArchived(archivedNotes());
     if (active) setActive(n.find((x) => x.id === active.id) ?? n[0] ?? null);
   }
 
@@ -302,6 +385,13 @@ export function NotesView({
               >
                 {n.title || "Untitled"}
               </button>
+              <SoftDeleteControls
+                onConfirm={() => {
+                  deleteNote(n.id);
+                  if (active?.id === n.id) setActive(null);
+                  refresh();
+                }}
+              />
             </li>
           ))}
           {!visible.length && <li className="hint">No notes.</li>}
@@ -337,21 +427,48 @@ export function NotesView({
               >
                 Add to chat context
               </button>
-              <button
-                type="button"
-                className="btn-link"
-                onClick={() => {
+              <SoftDeleteControls
+                onConfirm={() => {
                   deleteNote(active.id);
                   setActive(null);
                   refresh();
                 }}
-              >
-                Delete
-              </button>
+              />
             </div>
           </div>
         )}
       </div>
+      {archived.length > 0 && (
+        <details className="archive-section">
+          <summary>Archived ({archived.length}) — auto-clears after 5 days</summary>
+          <ul className="module-list">
+            {archived.map((n) => (
+              <li key={n.id} className="archive-item">
+                <span>{n.title || "Untitled"}</span>
+                <span className="item-actions">
+                  <button
+                    type="button"
+                    className="btn-icon confirm-tick"
+                    title="Restore"
+                    onClick={() => {
+                      restoreNote(n.id);
+                      refresh();
+                    }}
+                  >
+                    ↺
+                  </button>
+                  <SoftDeleteControls
+                    onConfirm={() => {
+                      deleteNote(n.id, true);
+                      refresh();
+                    }}
+                  />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </section>
   );
 }

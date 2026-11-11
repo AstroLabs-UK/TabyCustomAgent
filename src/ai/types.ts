@@ -5,10 +5,20 @@
 
 export type AiRole = "system" | "user" | "assistant" | "tool";
 
+export interface AiToolCall {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+}
+
 export interface AiMessage {
   role: AiRole;
   content: string;
   name?: string;
+  /** Present on tool-result messages */
+  tool_call_id?: string;
+  /** Present on assistant messages that requested tools */
+  tool_calls?: AiToolCall[];
 }
 
 export interface AiStreamChunk {
@@ -16,6 +26,8 @@ export interface AiStreamChunk {
   text?: string;
   toolName?: string;
   toolArgs?: unknown;
+  /** Stable id for this tool call (for multi-step loops) */
+  toolCallId?: string;
   error?: string;
 }
 

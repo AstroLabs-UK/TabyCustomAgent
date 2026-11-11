@@ -19,6 +19,7 @@ import {
   streakFor,
 } from "../modules/habits";
 import {
+  activeNotes,
   createNote,
   deleteNote,
   loadNotes,
@@ -72,7 +73,7 @@ const tools: Record<string, ToolHandler> = {
   // ── Tasks ──────────────────────────────────────────────────
   list_tasks: (args) => {
     const filter = str(args.filter, "all"); // all | open | done | today
-    let data = loadTasks();
+    let data = loadTasks().filter((t) => !t.archivedAt);
     if (filter === "open") data = tasksOpen();
     else if (filter === "done") data = data.filter((t) => t.done);
     else if (filter === "today") data = tasksDueOn(new Date());
@@ -133,7 +134,7 @@ const tools: Record<string, ToolHandler> = {
 
   // ── Notes ──────────────────────────────────────────────────
   list_notes: () => {
-    const data = loadNotes().map((n) => ({
+    const data = activeNotes().map((n) => ({
       id: n.id,
       title: n.title,
       bodyPreview: n.body.slice(0, 160),
@@ -747,8 +748,10 @@ Rules:
 4. For current date/time questions use get_current_time.
 5. For general knowledge / news / facts use web_search or wiki_summary, then answer from the tool data.
 6. For math use calculate. To open a link use open_url.
-9. To show a face reaction use play_reaction with mood or animationId (force=true by default). Catalog includes f1_car, basketball_dunk, trophy, blush, etc. Do not narrate tool JSON in your reply — the face is enough.
-7. Be concise. After tools run, confirm what changed in plain language using the tool results.
-8. Never invent tasks/notes that are not in tool results when the user asks what is stored.
+7. To show a face reaction use play_reaction with mood or animationId (force=true by default). Catalog includes f1_car, basketball_dunk, trophy, blush, etc. Do not narrate tool JSON in your reply — the face is enough.
+8. After tools run you will receive their results. ALWAYS write a short natural-language reply that uses those results (confirm what changed, list what you found, etc.). Never leave the user with an empty message.
+9. You may call multiple tools across turns when needed. When you have enough information, stop calling tools and answer.
+10. Never invent tasks/notes that are not in tool results when the user asks what is stored.
+11. Be concise and friendly.
 
 Available tools: ${Object.keys(tools).join(", ")}.`;

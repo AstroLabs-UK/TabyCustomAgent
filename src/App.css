@@ -3148,3 +3148,112 @@ html, body, #root {
 .local-face-missing {
   display: none !important;
 }
+
+/* ─── Stage 15 polish: muted banners + liquid glass ───────────── */
+
+/* Ensure every module banner / empty-state / header is dark & muted */
+.hud-module-card .card,
+.hud-module-card .module-card,
+.hud-module-card section.card,
+.hud-module-panel .card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #f4f4f5 !important;
+}
+
+.hud-module-card h2,
+.hud-module-card h3,
+.hud-module-card .wellness-heading {
+  color: #e8e8ea !important;
+}
+
+/* Soft muted empty-state / hint banners (never pure white) */
+.hud-module-card .hint,
+.hud-module-card .empty-state,
+.hud-module-card .module-banner,
+.hud-module-card li.hint {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(244, 244, 245, 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+/* Dash / overview cards — dark glass chips */
+.hud-module-card .dash-card,
+.hud-module-card .home-card,
+.hud-module-card .stat-card {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #f4f4f5 !important;
+}
+
+/* Liquid glass shell for HUD stage + panels */
+.hud-stage--stack,
+.hud-nav-panel,
+.tc-chat,
+.tc-settings,
+.hud-module-card {
+  background: rgba(28, 28, 32, 0.72) !important;
+  backdrop-filter: blur(22px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Status / thinking strip — muted, readable */
+.hint,
+.status-line,
+.tc-status {
+  color: rgba(244, 244, 245, 0.7) !important;
+}
+
+/* Soft-delete confirm tick + trash affordance */
+.item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+.item-actions .btn-icon {
+  background: transparent;
+  border: none;
+  color: rgba(244, 244, 245, 0.45);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.item-actions .btn-icon:hover {
+  color: #f4f4f5;
+  background: rgba(255, 255, 255, 0.08);
+}
+.item-actions .btn-icon.confirm-tick {
+  color: #7dcea0;
+}
+.item-actions .btn-icon.danger-hover:hover {
+  color: #e98f78;
+}
+
+/* Archive section at bottom of lists */
+.archive-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.archive-section summary {
+  cursor: pointer;
+  color: rgba(244, 244, 245, 0.55);
+  font-size: 0.85rem;
+  font-weight: 600;
+  list-style: none;
+}
+.archive-section summary::-webkit-details-marker { display: none; }
+.archive-section .archive-item {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}

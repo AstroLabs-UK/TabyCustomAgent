@@ -24,8 +24,26 @@ export const FACE_NATIVE_H = 456;
 /** After rotate 270° CW: long edge is horizontal (along the bottom). */
 export const FACE_DISPLAY_ASPECT = `${FACE_NATIVE_H} / ${FACE_NATIVE_W}`; // 456 / 280
 
-const IDLE_VARIANTS = ["idle_01_loop", "idle_02_loop"] as const;
+const IDLE_VARIANTS = ["idle_01_loop", "idle_02_loop", "idle_variation_loop"] as const;
 const IDLE_STILL_PAUSE_MS = 900;
+/** Every ~2 minutes of pure idle, play a fun one-shot activity */
+const IDLE_FUN_INTERVAL_MS = 120_000;
+
+/** Occasional idle activities (loops most of the time; these are rare treats) */
+const IDLE_FUN_CANDIDATES = [
+  "fishing_short",
+  "fishing_long",
+  "stretching",
+  "drink_water",
+  "posture_check",
+  "basketball_throw",
+  "f1_car",
+  "boxing",
+  "circle",
+  "square",
+  "relaxing_01_loop",
+  "working_laptop_bored_loop",
+] as const;
 
 /** Cute one-shots when the user pets / wiggles Taby — only ids with real GIF files */
 const CUTE_CANDIDATES = [
@@ -38,6 +56,7 @@ const CUTE_CANDIDATES = [
   "trophy",
   "confirmation",
   "task_completed",
+  "angry_01_loop",
 ] as const;
 
 const CUTE_WIGGLE = CUTE_CANDIDATES.filter((id) => Boolean(gifForAnimationId(id)));
@@ -75,10 +94,12 @@ export function LocalFacePanel() {
       }
   );
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const funIdleTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastId = useRef("idle_01_loop");
   const lastPointer = useRef<{ x: number; y: number } | null>(null);
   const travel = useRef(0);
   const lastWiggleAt = useRef(0);
+  const lastActivityAt = useRef(Date.now());
   /** Keep last good src so we never flash “No face GIF”. */
   const lastSrc = useRef(resolveGif("idle_01_loop").src);
 
@@ -98,8 +119,40 @@ export function LocalFacePanel() {
         return;
       }
       lastId.current = nextId;
+      lastActivityAt.current = Date.now();
       setFace({ ...s, connected: true, animationId: nextId });
     });
+  }, []);
+
+  // Occasional fun idle activity (~ every 2 min of pure idle loops)
+  useEffect(() => {
+    funIdleTimer.current = setInterval(() => {
+      const id = lastId.current;
+      const isIdle =
+        id.startsWith("idle") ||
+        id === "relaxing_01_loop" ||
+        id === "idle_variation_loop";
+      if (!isIdle) return;
+      if (Date.now() - lastActivityAt.current < IDLE_FUN_INTERVAL_MS - 5000) {
+        return;
+      }
+      const pool = IDLE_FUN_CANDIDATES.filter((x) => Boolean(gifForAnimationId(x)));
+      const candidates = pool.length
+        ? pool
+        : (["stretching", "yeah", "thumbs_up"] as const);
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      const resolved = resolveGif(pick);
+      publishFaceState({
+        animationId: resolved.id,
+        label: FACE_LABELS[resolved.id] ?? resolved.id,
+        at: Date.now(),
+        connected: true,
+        force: true,
+      });
+    }, IDLE_FUN_INTERVAL_MS);
+    return () => {
+      if (funIdleTimer.current) clearInterval(funIdleTimer.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -110,7 +163,10 @@ export function LocalFacePanel() {
     const id = face.animationId || "idle_01_loop";
     lastId.current = id;
     const isIdle =
-      id === "idle_01_loop" || id === "idle_02_loop" || id === "idle";
+      id === "idle_01_loop" ||
+      id === "idle_02_loop" ||
+      id === "idle_variation_loop" ||
+      id === "idle";
 
     if (!LOOPING_ANIMATION_IDS.has(id) && !isIdle) {
       const ms =

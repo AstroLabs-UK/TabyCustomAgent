@@ -9,6 +9,7 @@ import {
 import { NavToggle } from "./NavToggle";
 import type { ChatAttachment } from "../chat/attachments";
 import { AttachmentChips } from "../chat/AttachmentChips";
+import { FACE_LABELS, publishFaceState } from "../device/faceBus";
 
 export type CompactPromptProps = {
   connectionLabel: string;
@@ -104,6 +105,15 @@ export function CompactPrompt({
           placeholder="What can you do?"
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onPaste={() => {
+            publishFaceState({
+              animationId: "copy_paste",
+              label: FACE_LABELS.copy_paste ?? "Copy / paste",
+              at: Date.now(),
+              connected: true,
+              force: true,
+            });
+          }}
           aria-label="Prompt"
         />
         <input
