@@ -3758,3 +3758,151 @@ html, body, #root {
   overflow-y: scroll !important;
   max-height: min(50vh, 460px) !important;
 }
+
+/* ─── Settings as submenu screens (no accordion) ─────────────── */
+.hud-module-panel:has(.tc-settings),
+.hud-module-card:has(.tc-settings),
+.overlay-root .hud-module-panel:has(.tc-settings),
+.overlay-root .hud-module-card:has(.tc-settings) {
+  max-height: min(78vh, 720px) !important;
+  height: min(78vh, 720px) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+}
+
+.tc-settings.tc-settings--nav {
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  padding: 14px !important;
+  box-sizing: border-box !important;
+  gap: 10px !important;
+}
+
+.tc-settings__head,
+.tc-settings__subhead,
+.tc-settings__foot {
+  flex: 0 0 auto !important;
+}
+
+.tc-settings__menu,
+.tc-settings__screen {
+  flex: 1 1 auto !important;
+  min-height: 0 !important; /* critical for nested flex scroll */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(233, 143, 120, 0.55) rgba(255, 255, 255, 0.06);
+}
+
+.tc-settings__menu::-webkit-scrollbar,
+.tc-settings__screen::-webkit-scrollbar {
+  width: 8px;
+}
+.tc-settings__menu::-webkit-scrollbar-track,
+.tc-settings__screen::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+.tc-settings__menu::-webkit-scrollbar-thumb,
+.tc-settings__screen::-webkit-scrollbar-thumb {
+  background: rgba(233, 143, 120, 0.55);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.tc-settings__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tc-settings__menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.28);
+  color: #f4f4f5;
+  border-radius: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.tc-settings__menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.tc-settings__menu-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tc-settings__menu-chev {
+  font-size: 1.4rem;
+  opacity: 0.45;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.tc-settings__subhead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tc-settings__back {
+  align-self: flex-start;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fafafa;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 12px 18px;
+  border-radius: 14px;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.tc-settings__back:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.tc-settings__screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+
+.tc-settings__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Kill old accordion max-heights that caused bottom cutoff */
+.tc-settings__sections {
+  max-height: none !important;
+  overflow: visible !important;
+}
