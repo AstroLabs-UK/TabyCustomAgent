@@ -3102,8 +3102,13 @@ html, body, #root {
 }
 
 .tc-shell {
-  background: #16161a !important;
+  background: transparent !important;
   color: #f4f4f5 !important;
+  min-height: 0;
+}
+/* Solid shell only when onboarding is showing */
+.overlay-root.tc-shell:has(.tc-onboard) {
+  background: #16161a !important;
   min-height: 100vh;
 }
 
