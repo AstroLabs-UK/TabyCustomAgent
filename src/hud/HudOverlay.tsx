@@ -43,7 +43,7 @@ export function HudOverlay({
   onCloseModule,
   localFace,
 }: HudOverlayProps) {
-  const [phase, setPhase] = useState<HudPhase>("compact");
+  const [phase, setPhase] = useState<HudPhase>("hidden");
   const hasDismissedOnce = useRef(false);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const timerRef = useRef<DwellTimer | null>(null);
@@ -213,6 +213,11 @@ export function HudOverlay({
 
   const dismissAll = useCallback(() => {
     hasDismissedOnce.current = true;
+    if (leaveHideTimer.current) {
+      clearTimeout(leaveHideTimer.current);
+      leaveHideTimer.current = null;
+    }
+    setEdgeBar(null);
     setPhase("hidden");
     timerRef.current?.pointerLeave();
     onCloseModule?.();
@@ -236,6 +241,11 @@ export function HudOverlay({
   /** Hard close everything (used for true outside click when panel open) */
   const dismissHard = useCallback(() => {
     hasDismissedOnce.current = true;
+    if (leaveHideTimer.current) {
+      clearTimeout(leaveHideTimer.current);
+      leaveHideTimer.current = null;
+    }
+    setEdgeBar(null);
     onCloseModule?.();
     setPhase("hidden");
     timerRef.current?.pointerLeave();
@@ -279,11 +289,7 @@ export function HudOverlay({
   function handleBackdropPointer(e: React.MouseEvent | React.PointerEvent) {
     if (e.target === e.currentTarget) {
       e.preventDefault();
-      if (phase === "expanded" || activeModuleId || modulePanel) {
-        dismissHard();
-      } else {
-        dismiss();
-      }
+      dismissHard(); // instant — no leave-bar wait
     }
   }
 
@@ -329,25 +335,29 @@ export function HudOverlay({
   }
 
 
-  // Click anywhere outside the stage closes dropdowns / HUD
+  // Click outside: instant hide (no leave-bar wait). Also cancels open progress.
   useEffect(() => {
-    if (!visible) return;
     function onDocPointerDown(ev: PointerEvent) {
-      const stage = stageRef.current;
-      if (!stage) return;
       const target = ev.target as Node | null;
-      if (target && stage.contains(target)) return;
-      // Outside the stack
-      if (phase === "expanded" || activeModuleId || modulePanel) {
+      // Progress-only open: any click cancels and hides
+      if (edgeBar?.mode === "open" && phase === "hidden") {
         dismissHard();
-      } else {
-        dismissAll();
+        return;
       }
+      if (!visible) return;
+      const stage = stageRef.current;
+      if (stage && target && stage.contains(target)) return;
+      // Outside the stack — instant dismiss, no leaveHide countdown
+      if (leaveHideTimer.current) {
+        clearTimeout(leaveHideTimer.current);
+        leaveHideTimer.current = null;
+      }
+      setEdgeBar(null);
+      dismissHard();
     }
-    // capture so we get it before other handlers
     document.addEventListener("pointerdown", onDocPointerDown, true);
     return () => document.removeEventListener("pointerdown", onDocPointerDown, true);
-  }, [visible, phase, activeModuleId, modulePanel, dismissHard, dismissAll]);
+  }, [visible, phase, edgeBar, dismissHard]);
 
   return (
     <>

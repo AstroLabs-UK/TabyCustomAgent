@@ -3718,3 +3718,43 @@ html, body, #root {
   border: none !important;
   font-weight: 600 !important;
 }
+
+
+/* ─── Settings must scroll (pointer + height) ─────────────────── */
+.overlay-root .hud-module-panel,
+.overlay-root .hud-module-card,
+.hud-module-panel:has(.tc-settings),
+.hud-module-card:has(.tc-settings) {
+  pointer-events: auto !important;
+  overflow: hidden !important;
+  max-height: min(72vh, 680px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.tc-settings {
+  pointer-events: auto !important;
+  overflow: hidden !important;
+  max-height: min(68vh, 640px) !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.tc-settings__sections {
+  pointer-events: auto !important;
+  flex: 1 1 auto !important;
+  min-height: 160px !important;
+  max-height: min(50vh, 460px) !important;
+  overflow-y: scroll !important; /* force scrollable */
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure early overrides don't kill settings scroll */
+.hud-module-panel .tc-settings__sections,
+.hud-module-card .tc-settings__sections {
+  overflow-y: scroll !important;
+  max-height: min(50vh, 460px) !important;
+}
