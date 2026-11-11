@@ -423,7 +423,7 @@ struct UsbProvisionResult {
     log: Vec<String>,
 }
 
-fn is_likely_esp32(vid: Option<u16>, pid: Option<u16>, name: &str) -> bool {
+fn is_likely_esp32(vid: Option<u16>, _pid: Option<u16>, name: &str) -> bool {
     let n = name.to_lowercase();
     // Espressif VID 0x303A, common CP210x 0x10C4, CH340 0x1A86
     match vid {

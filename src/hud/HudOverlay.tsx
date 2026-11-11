@@ -211,6 +211,23 @@ export function HudOverlay({
     return () => un?.();
   }, []);
 
+  // When a module (e.g. Settings) opens, refit window once after layout
+  useEffect(() => {
+    if (!modulePanel || !visible) return;
+    const id = window.setTimeout(() => {
+      const el = stageRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      // Cap height so OS taskbar / face stack don't clip the panel
+      const maxH = Math.min(
+        (typeof window !== "undefined" ? window.screen.availHeight : 900) * 0.7,
+        560
+      );
+      void fitOverlayToContent(Math.min(r.height + 8, maxH), Math.max(r.width, 340));
+    }, 120);
+    return () => clearTimeout(id);
+  }, [modulePanel, visible, activeModuleId]);
+
   const dismissAll = useCallback(() => {
     hasDismissedOnce.current = true;
     if (leaveHideTimer.current) {

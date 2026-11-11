@@ -3759,17 +3759,18 @@ html, body, #root {
   max-height: min(50vh, 460px) !important;
 }
 
-/* ─── Settings as submenu screens (no accordion) ─────────────── */
+/* ─── Settings as submenu screens (compact, no cutoff) ───────── */
 .hud-module-panel:has(.tc-settings),
 .hud-module-card:has(.tc-settings),
 .overlay-root .hud-module-panel:has(.tc-settings),
 .overlay-root .hud-module-card:has(.tc-settings) {
-  max-height: min(78vh, 720px) !important;
-  height: min(78vh, 720px) !important;
+  max-height: min(52vh, 420px) !important;
+  height: min(52vh, 420px) !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
   padding: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .tc-settings.tc-settings--nav {
@@ -3779,9 +3780,9 @@ html, body, #root {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  padding: 14px !important;
+  padding: 10px 10px 8px !important;
   box-sizing: border-box !important;
-  gap: 10px !important;
+  gap: 6px !important;
 }
 
 .tc-settings__head,
@@ -3905,4 +3906,36 @@ html, body, #root {
 .tc-settings__sections {
   max-height: none !important;
   overflow: visible !important;
+}
+
+
+.tc-settings--nav .tc-settings__title {
+  font-size: 1rem !important;
+  margin: 0 !important;
+}
+.tc-settings--nav .tc-settings__sub {
+  font-size: 0.72rem !important;
+  margin: 2px 0 0 !important;
+}
+.tc-settings--nav .tc-settings__sec-title {
+  font-size: 0.88rem !important;
+}
+.tc-settings--nav .tc-settings__sec-blurb {
+  font-size: 0.7rem !important;
+}
+.tc-settings--nav .tc-settings__search {
+  min-height: 36px !important;
+  padding: 6px 10px !important;
+  margin-top: 4px !important;
+}
+.tc-settings--nav .tc-settings__menu {
+  gap: 5px !important;
+}
+.tc-settings--nav .tc-settings__foot {
+  padding-top: 4px !important;
+  gap: 6px !important;
+}
+.tc-settings--nav .tc-settings__btn {
+  padding: 6px 12px !important;
+  font-size: 0.8rem !important;
 }
