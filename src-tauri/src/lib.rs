@@ -396,6 +396,365 @@ fn get_startup_log_path() -> String {
         .to_string()
 }
 
+
+// ─── USB Physical Taby detection + provision ─────────────────
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UsbPortInfo {
+    path: String,
+    name: String,
+    vid: Option<u16>,
+    pid: Option<u16>,
+    /// Heuristic: Espressif / common CDC ACM
+    likely_esp32: bool,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UsbProvisionResult {
+    ok: bool,
+    phase: String,
+    message: String,
+    port: Option<String>,
+    serial: Option<String>,
+    ble_mac: Option<String>,
+    firmware: Option<String>,
+    log: Vec<String>,
+}
+
+fn is_likely_esp32(vid: Option<u16>, pid: Option<u16>, name: &str) -> bool {
+    let n = name.to_lowercase();
+    // Espressif VID 0x303A, common CP210x 0x10C4, CH340 0x1A86
+    match vid {
+        Some(0x303A) | Some(0x10C4) | Some(0x1A86) | Some(0x0403) => true,
+        _ => {
+            n.contains("usb serial")
+                || n.contains("usb modem")
+                || n.contains("esp32")
+                || n.contains("jtag")
+                || n.contains("silicon labs")
+                || n.contains("wch")
+        }
+    }
+}
+
+#[tauri::command]
+fn usb_list_ports() -> Result<Vec<UsbPortInfo>, String> {
+    let ports = serialport::available_ports().map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for p in ports {
+        let (vid, pid, name) = match &p.port_type {
+            serialport::SerialPortType::UsbPort(info) => {
+                let product = info.product.clone().unwrap_or_default();
+                let manu = info.manufacturer.clone().unwrap_or_default();
+                let name = format!(
+                    "{} {} {}",
+                    manu,
+                    product,
+                    info.serial_number.clone().unwrap_or_default()
+                )
+                .trim()
+                .to_string();
+                (Some(info.vid), Some(info.pid), if name.is_empty() { p.port_name.clone() } else { name })
+            }
+            _ => (None, None, p.port_name.clone()),
+        };
+        let likely = is_likely_esp32(vid, pid, &name) || {
+            let pn = p.port_name.to_lowercase();
+            pn.contains("ttyacm") || pn.contains("usbmodem") || pn.contains("com")
+        };
+        // Prefer ACM / usbmodem; still list all USB-ish
+        out.push(UsbPortInfo {
+            path: p.port_name.clone(),
+            name,
+            vid,
+            pid,
+            likely_esp32: likely,
+        });
+    }
+    // Likely ESP32 first
+    out.sort_by(|a, b| b.likely_esp32.cmp(&a.likely_esp32));
+    Ok(out)
+}
+
+fn app_data_dir() -> std::path::PathBuf {
+    dirs_next_path()
+}
+
+fn dirs_next_path() -> std::path::PathBuf {
+    // Prefer standard locations without extra crate
+    if let Ok(p) = std::env::var("LOCALAPPDATA") {
+        return std::path::PathBuf::from(p).join("TabyCustomAgent");
+    }
+    if let Ok(home) = std::env::var("HOME") {
+        return std::path::PathBuf::from(home).join(".local/share/TabyCustomAgent");
+    }
+    std::env::temp_dir().join("TabyCustomAgent")
+}
+
+fn run_cmd(program: &str, args: &[&str], cwd: &std::path::Path) -> Result<(i32, String), String> {
+    use std::process::Command;
+    let output = Command::new(program)
+        .args(args)
+        .current_dir(cwd)
+        .output()
+        .map_err(|e| format!("failed to run {}: {}", program, e))?;
+    let mut s = String::new();
+    s.push_str(&String::from_utf8_lossy(&output.stdout));
+    s.push_str(&String::from_utf8_lossy(&output.stderr));
+    let code = output.status.code().unwrap_or(-1);
+    Ok((code, s))
+}
+
+fn find_python() -> Option<String> {
+    for c in ["python3", "python", "py"] {
+        if let Ok(o) = std::process::Command::new(c).arg("--version").output() {
+            if o.status.success() {
+                return Some(c.to_string());
+            }
+        }
+    }
+    // Windows py -3
+    if let Ok(o) = std::process::Command::new("py").args(["-3", "--version"]).output() {
+        if o.status.success() {
+            return Some("py".to_string());
+        }
+    }
+    None
+}
+
+/// Detect plugged board and install upstream firmware-taby release via its tools.
+#[tauri::command]
+fn usb_provision_taby(
+    board: String,
+    port: Option<String>,
+    ssid: Option<String>,
+) -> Result<UsbProvisionResult, String> {
+    let mut log: Vec<String> = Vec::new();
+    let ports = usb_list_ports()?;
+    log.push(format!("ports found: {}", ports.len()));
+    for p in &ports {
+        log.push(format!(
+            "  {} ({}) likely_esp32={}",
+            p.path, p.name, p.likely_esp32
+        ));
+    }
+
+    let chosen = if let Some(ref p) = port {
+        ports.iter().find(|x| x.path == *p).cloned().or_else(|| {
+            Some(UsbPortInfo {
+                path: p.clone(),
+                name: p.clone(),
+                vid: None,
+                pid: None,
+                likely_esp32: true,
+            })
+        })
+    } else {
+        ports.into_iter().find(|p| p.likely_esp32)
+    };
+
+    let Some(chosen) = chosen else {
+        return Ok(UsbProvisionResult {
+            ok: false,
+            phase: "error".into(),
+            message: "No USB Taby / ESP32 serial port found. Plug in a data USB cable and try again.".into(),
+            port: None,
+            serial: None,
+            ble_mac: None,
+            firmware: None,
+            log,
+        });
+    };
+    log.push(format!("using port {}", chosen.path));
+
+    let Some(py) = find_python() else {
+        return Ok(UsbProvisionResult {
+            ok: false,
+            phase: "error".into(),
+            message: "Python 3 is required to install firmware. Install from python.org, then retry.".into(),
+            port: Some(chosen.path),
+            serial: None,
+            ble_mac: None,
+            firmware: None,
+            log,
+        });
+    };
+    log.push(format!("python: {}", py));
+
+    let root = app_data_dir().join("firmware-taby");
+    std::fs::create_dir_all(&root).map_err(|e| e.to_string())?;
+
+    // Ensure upstream repo tools exist (shallow clone or pull)
+    let git_dir = root.join(".git");
+    if !git_dir.exists() {
+        log.push("cloning TRIIIS-LABS/firmware-taby…".into());
+        let parent = root.parent().unwrap();
+        let (code, out) = run_cmd(
+            "git",
+            &[
+                "clone",
+                "--depth",
+                "1",
+                "https://github.com/TRIIIS-LABS/firmware-taby.git",
+                root.file_name().unwrap().to_str().unwrap(),
+            ],
+            parent,
+        )?;
+        log.push(out.chars().take(800).collect());
+        if code != 0 {
+            return Ok(UsbProvisionResult {
+                ok: false,
+                phase: "error".into(),
+                message: "Could not download firmware-taby tools (git clone failed). Check network.".into(),
+                port: Some(chosen.path),
+                serial: None,
+                ble_mac: None,
+                firmware: None,
+                log,
+            });
+        }
+    } else {
+        log.push("updating firmware-taby…".into());
+        let (_c, out) = run_cmd("git", &["pull", "--ff-only"], &root).unwrap_or((0, String::new()));
+        log.push(out.chars().take(400).collect());
+    }
+
+    // Bootstrap venv + esptool
+    log.push("bootstrap esptool…".into());
+    let boot_args: Vec<String> = if py == "py" {
+        vec!["-3".into(), "tools/bootstrap.py".into()]
+    } else {
+        vec!["tools/bootstrap.py".into()]
+    };
+    let boot_refs: Vec<&str> = boot_args.iter().map(|s| s.as_str()).collect();
+    let (code, out) = run_cmd(&py, &boot_refs, &root)?;
+    log.push(out.chars().take(1000).collect());
+    if code != 0 {
+        return Ok(UsbProvisionResult {
+            ok: false,
+            phase: "error".into(),
+            message: "Firmware tool bootstrap failed. See log in Settings.".into(),
+            port: Some(chosen.path),
+            serial: None,
+            ble_mac: None,
+            firmware: None,
+            log,
+        });
+    }
+
+    // Prefer venv python
+    let venv_py = if cfg!(windows) {
+        root.join(".venv/Scripts/python.exe")
+    } else {
+        root.join(".venv/bin/python")
+    };
+    let python = if venv_py.exists() {
+        venv_py.to_string_lossy().to_string()
+    } else {
+        py.clone()
+    };
+
+    // Download release bundle via upstream helper if present, else instruct
+    let board_arg = if board.is_empty() {
+        "amoled-1.64".to_string()
+    } else {
+        board.clone()
+    };
+
+    // Try identify first (may fail on blank board — OK)
+    log.push("identify (optional)…".into());
+    let (_c, id_out) = run_cmd(
+        &python,
+        &[
+            "tools/device.py",
+            "identify",
+            "--port",
+            &chosen.path,
+        ],
+        &root,
+    )
+    .unwrap_or((-1, String::new()));
+    log.push(id_out.chars().take(600).collect());
+
+    // Flash using install.py — expects bundle; try `tools/install.py flash` with auto bundle fetch if supported
+    // Many releases need downloaded zip. Attempt install.py with --board only.
+    log.push(format!("flashing board {} on {}…", board_arg, chosen.path));
+    let flash_args = [
+        "tools/install.py",
+        "flash",
+        "--board",
+        board_arg.as_str(),
+        "--port",
+        chosen.path.as_str(),
+        "--confirmed-board",
+    ];
+    let (code, out) = run_cmd(&python, &flash_args, &root)?;
+    log.push(out.chars().take(2000).collect());
+
+    if code != 0 {
+        // Soft success path: device detected but flash needs manual bundle
+        return Ok(UsbProvisionResult {
+            ok: false,
+            phase: "error".into(),
+            message: format!(
+                "Device found on {} but automatic flash did not complete. Download the matching release from firmware-taby and retry, or run upstream install.py. Details in log.",
+                chosen.path
+            ),
+            port: Some(chosen.path),
+            serial: None,
+            ble_mac: None,
+            firmware: None,
+            log,
+        });
+    }
+
+    // Try read identity after flash
+    let (_c, info_out) = run_cmd(
+        &python,
+        &["tools/device.py", "identify", "--port", &chosen.path],
+        &root,
+    )
+    .unwrap_or((-1, String::new()));
+    log.push(info_out.chars().take(600).collect());
+
+    // Parse rough MAC/serial from identify output if present
+    let mut ble_mac = None;
+    let mut serial = None;
+    for line in info_out.lines() {
+        let lower = line.to_lowercase();
+        if lower.contains("mac") || lower.contains("ble") {
+            if let Some(m) = line.split_whitespace().find(|t| t.contains(':') && t.len() >= 11) {
+                ble_mac = Some(m.trim_matches(',').to_string());
+            }
+        }
+        if lower.contains("serial") {
+            if let Some(s) = line.split(':').nth(1) {
+                serial = Some(s.trim().to_string());
+            }
+        }
+    }
+
+    if let Some(ref s) = ssid {
+        if !s.is_empty() {
+            log.push(format!("wifi ssid requested: {} (write when device protocol supports it)", s));
+        }
+    }
+
+    Ok(UsbProvisionResult {
+        ok: true,
+        phase: "done".into(),
+        message: format!("Firmware install finished on {}", chosen.path),
+        port: Some(chosen.path),
+        serial,
+        ble_mac,
+        firmware: Some(board_arg),
+        log,
+    })
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     purge_old_logs();
@@ -421,7 +780,9 @@ pub fn run() {
             update_edge_zone,
             get_primary_screen_size,
             get_edge_zone_rect,
-            get_startup_log_path
+            get_startup_log_path,
+            usb_list_ports,
+            usb_provision_taby
         ])
         .setup(move |app| {
             if let Some(win) = app.get_webview_window("main") {

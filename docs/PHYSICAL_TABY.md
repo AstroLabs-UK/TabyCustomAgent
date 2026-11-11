@@ -31,14 +31,17 @@ More screens may appear upstream. Check [board compatibility](https://github.com
 
 Plug the board into **this PC** with the USB data cable.
 
-### Option A — Custom Taby Agent (preferred when ready)
+### Option A — Custom Taby Agent (preferred)
 
-1. Open **Custom Taby Agent**.
-2. **Settings → Device → USB** (or onboarding → Physical Taby → USB setup).
-3. Enter your Wi‑Fi **SSID** if you want it written from the desktop.
-4. Click **Run USB setup**.
+1. Plug the board in with a **data** USB cable.
+2. Open **Custom Taby Agent** → **Settings → Device → USB**.
+3. **Scan USB ports** to confirm the board is seen.
+4. Optional: enter Wi‑Fi **SSID**.
+5. Click **Detect & install firmware**.
 
-The app is designed to push runtime/assets, read the **BLE MAC / serial**, and store them so you don’t type on the screen. Until real USB flash is fully wired, you can still use Option B, then pair in the app.
+The app lists serial ports, pulls [firmware-taby](https://github.com/TRIIIS-LABS/firmware-taby) tools into app data, bootstraps esptool, and runs the upstream installer on the detected port.
+
+**Requirements on the PC:** Python 3, git, and network (first run). Close other apps using the serial port.
 
 ### Option B — Upstream flash (works today)
 

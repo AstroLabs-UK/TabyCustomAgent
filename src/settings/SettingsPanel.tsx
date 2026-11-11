@@ -13,7 +13,7 @@ export type SettingsPanelProps = {
   onVisualizeZone: () => void;
   onReplayOnboarding: () => void;
   /** USB wiped-device provision (sim or hardware) */
-  onProvisionUsb?: () => void;
+  onProvisionUsb?: (scanOnly?: boolean) => void;
   provisionStatus?: string;
   onConnectTransport?: () => void;
 };
@@ -362,11 +362,23 @@ export function SettingsPanel({
                           </label>
                           <button
                             type="button"
+                            className="tc-settings__btn"
+                            onClick={() => onProvisionUsb?.(true)}
+                          >
+                            Scan USB ports
+                          </button>
+                          <button
+                            type="button"
                             className="tc-settings__btn tc-settings__btn--accent"
                             onClick={() => onProvisionUsb?.()}
                           >
-                            Run USB setup
+                            Detect & install firmware
                           </button>
+                          <p className="tc-settings__hint">
+                            Plug Physical Taby with a data cable. We detect the
+                            serial port, pull upstream firmware-taby tools, and
+                            flash the board (needs Python 3 + git once).
+                          </p>
                         </>
                       )}
                       {settings.device.transport !== "mock" &&

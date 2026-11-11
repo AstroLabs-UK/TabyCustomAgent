@@ -15,6 +15,7 @@ import {
   usbDevice,
   bleDevice,
   wifiDevice,
+  listUsbPorts,
 } from "./device";
 import { completeStream, aiStatusLabel, aiStatusOk } from "./ai";
 import { HudOverlay } from "./hud";
@@ -165,8 +166,31 @@ function App() {
     );
   }
 
-  async function handleProvisionUsb() {
+  async function handleProvisionUsb(scanOnly?: boolean) {
     setProvisionStatus("Detecting USB…");
+    if (scanOnly) {
+      try {
+        const ports = await listUsbPorts();
+        if (!ports.length) {
+          setProvisionStatus("No serial ports found. Plug in the board (data cable).");
+          toastError("No USB serial ports found");
+          return;
+        }
+        const lines = ports
+          .map(
+            (p) =>
+              `${p.path}${p.likelyEsp32 ? " · likely ESP32" : ""} — ${p.name}`
+          )
+          .join(" | ");
+        setProvisionStatus(`Ports: ${lines}`);
+        toastSuccess(`Found ${ports.length} port(s)`);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setProvisionStatus(msg);
+        toastError(msg);
+      }
+      return;
+    }
     const wifiSsid = (settings.device.wifiSsid ?? "").trim();
     const result = await usbDevice.provision(
       wifiSsid ? { ssid: wifiSsid, password: "" } : undefined,
@@ -597,7 +621,7 @@ function App() {
             onConnectMock={() => void handleConnectMock()}
             onVisualizeZone={() => setZoneViz(true)}
             onReplayOnboarding={() => setForceOnboarding(true)}
-            onProvisionUsb={() => void handleProvisionUsb()}
+            onProvisionUsb={(scanOnly) => void handleProvisionUsb(scanOnly)}
             provisionStatus={provisionStatus}
             onConnectTransport={() => void handleConnectTransport()}
           />
@@ -654,7 +678,7 @@ function App() {
     return (
       <div className="overlay-root tc-shell">
         <OnboardingWizard
-          onProvisionUsb={() => void handleProvisionUsb()}
+          onProvisionUsb={(scanOnly) => void handleProvisionUsb(scanOnly)}
           provisionStatus={provisionStatus}
           settings={settings}
           setSettings={setSettings}

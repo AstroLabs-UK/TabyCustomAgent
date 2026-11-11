@@ -2,6 +2,7 @@ export * from "./types";
 export * from "./mockDevice";
 export * from "./bleClient";
 export * from "./usbClient";
+export { listUsbPorts } from "./usbClient";
 export * from "./wifiClient";
 export * from "./reconnect";
 export * from "./animationMap";
