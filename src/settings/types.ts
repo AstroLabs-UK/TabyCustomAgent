@@ -14,28 +14,36 @@ export type EdgeZone = {
 export interface AppSettings {
   ai: AiProviderConfig;
   hud: {
-    /** Fallback / productivity dwell (ms) */
     dwellMs: number;
     dwellBrowserMs: number;
     dwellGameMs: number;
-    /** After pointer leaves the HUD, hide after this many ms (default 3000). Re-entering cancels. */
     leaveHideMs: number;
     alwaysOnTop: boolean;
     faceReactionsEnabled: boolean;
-    /** Show face GIFs on-screen (no physical Taby required). */
     localFaceEnabled: boolean;
-    /** Write startup/runtime logs to disk (optional). */
     diagnosticsEnabled: boolean;
+    /** Prefer reduced motion (fewer face loops / transitions) */
+    reducedMotion?: boolean;
+    /** Optional global hotkey enabled */
+    globalHotkeyEnabled?: boolean;
+    globalHotkey?: string;
     edgeZone: EdgeZone;
-    /** Where along the top edge the dwell activates */
     hoverActivationArea?: "center" | "full" | "left" | "right";
   };
   device: {
     transport: DeviceTransport;
+    /** BLE MAC or preferred id */
     preferredId: string;
+    /** Wi‑Fi device base URL or IP */
+    wifiAddress?: string;
+    /** Last known serial from provision */
+    serial?: string;
+    /** SSID only (password separate / not in plain logs) */
+    wifiSsid?: string;
   };
-  /** First-run wizard finished */
   onboardingCompleted: boolean;
+  /** User said they own Physical Taby */
+  hasPhysicalTaby?: boolean;
 }
 
 export const DEFAULT_EDGE_ZONE: EdgeZone = {
@@ -61,12 +69,19 @@ export const DEFAULT_SETTINGS: AppSettings = {
     faceReactionsEnabled: true,
     localFaceEnabled: true,
     diagnosticsEnabled: false,
+    reducedMotion: false,
+    globalHotkeyEnabled: false,
+    globalHotkey: "CommandOrControl+Shift+Space",
     edgeZone: { ...DEFAULT_EDGE_ZONE },
     hoverActivationArea: "center",
   },
   device: {
     transport: "mock",
     preferredId: "",
+    wifiAddress: "",
+    serial: "",
+    wifiSsid: "",
   },
   onboardingCompleted: false,
+  hasPhysicalTaby: false,
 };

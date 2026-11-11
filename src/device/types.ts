@@ -1,6 +1,5 @@
 /**
- * Device facade — BLE primary, USB / Wi-Fi later.
- * Stage 0: interface + MockDevice. Real BLE in Stage 5+.
+ * Device facade — BLE primary, USB provision, Wi‑Fi fallback.
  */
 
 export type DeviceTransport = "ble" | "usb" | "wifi" | "mock";
@@ -12,10 +11,40 @@ export type DeviceConnectionState =
   | "error";
 
 export interface DeviceEvent {
-  type: "ready" | "ok" | "err" | "choice" | "state" | "power";
+  type: "ready" | "ok" | "err" | "choice" | "state" | "power" | "provision";
   payload?: string;
   choiceIndex?: number;
 }
+
+/** Identity read from device during USB provision */
+export type DeviceIdentity = {
+  serial: string;
+  bleMac: string;
+  firmware?: string;
+  model?: string;
+};
+
+export type WifiCredentials = {
+  ssid: string;
+  /** Never log; stored in settings only on user machine */
+  password: string;
+};
+
+export type ProvisionPhase =
+  | "idle"
+  | "detecting"
+  | "pushing"
+  | "reading_identity"
+  | "writing_wifi"
+  | "done"
+  | "error";
+
+export type ProvisionResult = {
+  ok: boolean;
+  phase: ProvisionPhase;
+  identity?: DeviceIdentity;
+  message: string;
+};
 
 export interface DeviceFacade {
   readonly transport: DeviceTransport;

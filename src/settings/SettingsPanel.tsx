@@ -11,6 +11,10 @@ export type SettingsPanelProps = {
   onConnectMock: () => void;
   onVisualizeZone: () => void;
   onReplayOnboarding: () => void;
+  /** USB wiped-device provision (sim or hardware) */
+  onProvisionUsb?: () => void;
+  provisionStatus?: string;
+  onConnectTransport?: () => void;
 };
 
 type SectionId = "ai" | "face" | "activation" | "device" | "advanced";
@@ -61,6 +65,9 @@ export function SettingsPanel({
   onConnectMock,
   onVisualizeZone,
   onReplayOnboarding,
+  onProvisionUsb,
+  provisionStatus,
+  onConnectTransport,
 }: SettingsPanelProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<SectionId | null>("ai");
@@ -288,8 +295,8 @@ export function SettingsPanel({
                           }
                         >
                           <option value="mock">Mock (software)</option>
-                          <option value="ble">BLE</option>
-                          <option value="usb">USB</option>
+                          <option value="ble">BLE (day-to-day)</option>
+                          <option value="usb">USB (setup / recovery)</option>
                           <option value="wifi">Wi‑Fi</option>
                         </select>
                       </label>
@@ -302,12 +309,12 @@ export function SettingsPanel({
                           Connect mock device
                         </button>
                       )}
-                      {settings.device.transport !== "mock" && (
+                      {settings.device.transport === "ble" && (
                         <label className="tc-settings__field">
-                          <span>Device id / address</span>
+                          <span>BLE MAC / id</span>
                           <input
                             type="text"
-                            placeholder="Optional preferred device"
+                            placeholder="AA:BB:CC:DD:EE:FF"
                             value={settings.device.preferredId}
                             onChange={(e) =>
                               patchDevice({ preferredId: e.target.value })
@@ -315,6 +322,67 @@ export function SettingsPanel({
                           />
                         </label>
                       )}
+                      {settings.device.transport === "wifi" && (
+                        <label className="tc-settings__field">
+                          <span>Device IP or URL</span>
+                          <input
+                            type="text"
+                            placeholder="192.168.1.50 or http://…"
+                            value={settings.device.wifiAddress ?? ""}
+                            onChange={(e) =>
+                              patchDevice({ wifiAddress: e.target.value })
+                            }
+                          />
+                        </label>
+                      )}
+                      {settings.device.transport === "usb" && (
+                        <>
+                          <p className="tc-settings__hint">
+                            First setup: plug a wiped Taby in by USB. We push
+                            firmware, read the BLE MAC, and write Wi‑Fi from this
+                            PC — nothing to type on the screen.
+                          </p>
+                          <label className="tc-settings__field">
+                            <span>Wi‑Fi SSID (written to device)</span>
+                            <input
+                              type="text"
+                              placeholder="HomeNetwork"
+                              value={settings.device.wifiSsid ?? ""}
+                              onChange={(e) =>
+                                patchDevice({ wifiSsid: e.target.value })
+                              }
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="tc-settings__btn tc-settings__btn--accent"
+                            onClick={() => onProvisionUsb?.()}
+                          >
+                            Run USB setup
+                          </button>
+                        </>
+                      )}
+                      {settings.device.transport !== "mock" &&
+                        settings.device.transport !== "usb" && (
+                          <button
+                            type="button"
+                            className="tc-settings__btn"
+                            onClick={() => onConnectTransport?.()}
+                          >
+                            Connect
+                          </button>
+                        )}
+                      {settings.device.serial ? (
+                        <p className="tc-settings__hint">
+                          Serial {settings.device.serial}
+                          {settings.device.preferredId
+                            ? ` · BLE ${settings.device.preferredId}`
+                            : ""}
+                        </p>
+                      ) : null}
+                      {provisionStatus ? (
+                        <p className="tc-settings__hint">{provisionStatus}</p>
+                      ) : null}
                     </>
                   )}
 
@@ -338,6 +406,41 @@ export function SettingsPanel({
                         />
                         <span>Diagnostics logging (auto-purge 30 days)</span>
                       </label>
+                      <label className="tc-settings__check">
+                        <input
+                          type="checkbox"
+                          checked={settings.hud.reducedMotion === true}
+                          onChange={(e) =>
+                            patchHud({ reducedMotion: e.target.checked })
+                          }
+                        />
+                        <span>Reduced motion</span>
+                      </label>
+                      <label className="tc-settings__check">
+                        <input
+                          type="checkbox"
+                          checked={settings.hud.globalHotkeyEnabled === true}
+                          onChange={(e) =>
+                            patchHud({ globalHotkeyEnabled: e.target.checked })
+                          }
+                        />
+                        <span>Global hotkey (show HUD)</span>
+                      </label>
+                      {settings.hud.globalHotkeyEnabled && (
+                        <label className="tc-settings__field">
+                          <span>Hotkey</span>
+                          <input
+                            type="text"
+                            value={
+                              settings.hud.globalHotkey ??
+                              "CommandOrControl+Shift+Space"
+                            }
+                            onChange={(e) =>
+                              patchHud({ globalHotkey: e.target.value })
+                            }
+                          />
+                        </label>
+                      )}
                       <button
                         type="button"
                         className="tc-settings__btn tc-settings__btn--accent"

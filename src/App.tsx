@@ -12,6 +12,9 @@ import {
   ChatDeviceOrchestrator,
   getDevice,
   openFaceWindow,
+  usbDevice,
+  bleDevice,
+  wifiDevice,
 } from "./device";
 import { completeStream, aiStatusLabel, aiStatusOk } from "./ai";
 import { HudOverlay } from "./hud";
@@ -75,6 +78,7 @@ function App() {
   });
   const [streaming, setStreaming] = useState(false);
   const [statusLine, setStatusLine] = useState("");
+  const [provisionStatus, setProvisionStatus] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<
     ChatAttachment[]
   >([]);
@@ -156,6 +160,70 @@ function App() {
         ? "Could not open face window"
         : "Mock face window open"
     );
+  }
+
+  async function handleProvisionUsb() {
+    setProvisionStatus("Detecting USB…");
+    const wifiSsid = (settings.device.wifiSsid ?? "").trim();
+    const result = await usbDevice.provision(
+      wifiSsid ? { ssid: wifiSsid, password: "" } : undefined,
+      {
+        onPhase: (phase, detail) => {
+          setProvisionStatus(
+            detail ? `${phase}: ${detail}` : String(phase)
+          );
+        },
+      }
+    );
+    if (result.ok && result.identity) {
+      setSettings((s) => ({
+        ...s,
+        device: {
+          ...s.device,
+          transport: "ble",
+          preferredId: result.identity!.bleMac,
+          serial: result.identity!.serial,
+          wifiSsid: wifiSsid || s.device.wifiSsid,
+        },
+        hasPhysicalTaby: true,
+      }));
+      setDeviceState("connected");
+      setProvisionStatus(result.message);
+      setStatusLine(result.message);
+      setSaved(false);
+    } else {
+      setProvisionStatus(result.message);
+      setStatusLine(result.message);
+    }
+  }
+
+  async function handleConnectTransport() {
+    const t = settings.device.transport;
+    try {
+      if (t === "ble") {
+        await bleDevice.connect(settings.device.preferredId || undefined);
+        setDeviceState(bleDevice.getConnectionState());
+        setStatusLine(
+          `BLE connected${settings.device.preferredId ? ` · ${settings.device.preferredId}` : ""}`
+        );
+      } else if (t === "wifi") {
+        const addr = settings.device.wifiAddress || settings.device.preferredId;
+        wifiDevice.configure({ baseUrl: addr?.startsWith("http") ? addr : `http://${addr || "127.0.0.1"}` });
+        await wifiDevice.connect(addr);
+        setDeviceState(wifiDevice.getConnectionState());
+        setStatusLine(`Wi‑Fi connected · ${addr}`);
+      } else if (t === "usb") {
+        await usbDevice.connect();
+        setDeviceState(usbDevice.getConnectionState());
+        setStatusLine("USB connected");
+      } else {
+        await handleConnectMock();
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setStatusLine(msg);
+      setDeviceState("error");
+    }
   }
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
@@ -524,6 +592,9 @@ function App() {
             onConnectMock={() => void handleConnectMock()}
             onVisualizeZone={() => setZoneViz(true)}
             onReplayOnboarding={() => setForceOnboarding(true)}
+            onProvisionUsb={() => void handleProvisionUsb()}
+            provisionStatus={provisionStatus}
+            onConnectTransport={() => void handleConnectTransport()}
           />
         );
       default:
