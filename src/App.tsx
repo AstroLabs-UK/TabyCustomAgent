@@ -57,6 +57,9 @@ import { applyOverlayMode, fitOverlayToContent } from "./overlay/windowChrome";
 import { OnboardingWizard } from "./onboarding/OnboardingWizard";
 import { SettingsPanel } from "./settings/SettingsPanel";
 import { ZoneVisualizer } from "./overlay/ZoneVisualizer";
+import { ToastHost } from "./ui/ToastHost";
+import { toastError, toastSuccess } from "./ui/toasts";
+import { registerGlobalHotkey } from "./ui/hotkey";
 import {
   clampZone,
   pushEdgeZoneToRust,
@@ -191,9 +194,11 @@ function App() {
       setProvisionStatus(result.message);
       setStatusLine(result.message);
       setSaved(false);
+      toastSuccess(result.message);
     } else {
       setProvisionStatus(result.message);
       setStatusLine(result.message);
+      toastError(result.message);
     }
   }
 
@@ -610,6 +615,25 @@ function App() {
   const showOnboarding =
     forceOnboarding || settings.onboardingCompleted === false;
 
+  useEffect(() => {
+    if (!settings.hud.globalHotkeyEnabled) return;
+    let handle: { unregister: () => Promise<void> } | null = null;
+    void registerGlobalHotkey(
+      settings.hud.globalHotkey || "CommandOrControl+Shift+Space",
+      () => {
+        setForceOnboarding(false);
+        // nudge HUD open via status — full tray show is native-side
+        setStatusLine("Hotkey: Taby");
+      }
+    ).then((h) => {
+      handle = h;
+    });
+    return () => {
+      void handle?.unregister();
+    };
+  }, [settings.hud.globalHotkeyEnabled, settings.hud.globalHotkey]);
+
+
   // Onboarding / zone viz need a real visible window, not tray
   useEffect(() => {
     if (showOnboarding || zoneViz) {
@@ -630,6 +654,8 @@ function App() {
     return (
       <div className="overlay-root tc-shell">
         <OnboardingWizard
+          onProvisionUsb={() => void handleProvisionUsb()}
+          provisionStatus={provisionStatus}
           settings={settings}
           setSettings={setSettings}
           onFinish={(next) => {
@@ -681,6 +707,7 @@ function App() {
 
   return (
     <div className="overlay-root tc-shell">
+      <ToastHost />
       <HudOverlay
         dwellMs={settings.hud.dwellMs}
         leaveHideMs={settings.hud.leaveHideMs ?? 3000}

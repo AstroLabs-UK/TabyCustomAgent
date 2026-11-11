@@ -1,21 +1,22 @@
-# Stage 16 report — Transport hardening (BLE / USB / Wi‑Fi)
+# Stage 17 report — Polish + onboarding
 
 ## Automated results
-- suite: PASS (stage 0–15 + stage 16 transport tests)
+- suite: PASS (0–17 scripts)
 - notes:
-  - USB provision simulator: detect → push → read identity → write Wi‑Fi SSID (password never logged)
-  - BLE client: sim connect + reconnect backoff helper (`reconnect.ts`)
-  - Wi‑Fi HTTP client: POST `/cmd` with injectable fetch
-  - Settings: transport, BLE MAC, Wi‑Fi IP, USB setup button + status
-  - Registry routes ble/usb/wifi/mock to real clients (sim mode on)
+  - Onboarding: Physical vs screen-only, USB setup step, edge width slider, practice checkbox
+  - Toasts (`src/ui/toasts.ts` + ToastHost)
+  - Global hotkey registration helper (Tauri invoke or Ctrl+Shift+Space fallback)
+  - Settings: reduced motion, hotkey toggle
+  - README.md
 
 ## Screenshots / UI notes
-- Settings → Device: transport select, BLE MAC, Wi‑Fi IP, USB setup copy + Run USB setup
-- After sim provision: switches transport to BLE and stores MAC/serial
+- Onboarding branches on Physical Taby
+- USB step shows SSID + Run USB setup + status
+- Toast stack bottom-right
 
 ## Hardware
-- PENDING_HARDWARE — real GATT/serial not in this build; simulateHardware / simulateConnected = true for CI
+- PENDING_HARDWARE
 
 ## Ask user
-1. USB setup copy clear?
-2. Reply **GO** / **CHANGES** (batching 17 next per user request).
+1. Full walkthrough when you can: onboarding → USB sim → summon practice → chat/tool.
+2. Reply **GO** to treat v1 software complete, or **CHANGES**.

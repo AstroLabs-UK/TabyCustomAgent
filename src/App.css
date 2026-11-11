@@ -3257,3 +3257,44 @@ html, body, #root {
   opacity: 0.7;
   font-size: 0.9rem;
 }
+
+/* Stage 17 toasts */
+.tc-toasts {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(320px, 90vw);
+  pointer-events: none;
+}
+.tc-toast {
+  background: rgba(28, 28, 32, 0.92);
+  color: #f4f4f5;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+}
+.tc-toast--error {
+  border-color: rgba(233, 143, 120, 0.5);
+}
+.tc-toast--success {
+  border-color: rgba(125, 206, 160, 0.45);
+}
+.tc-onboard__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+}
+.tc-settings__hint {
+  font-size: 0.8rem;
+  color: rgba(244, 244, 245, 0.55);
+  margin: 6px 0 10px;
+  line-height: 1.4;
+}
