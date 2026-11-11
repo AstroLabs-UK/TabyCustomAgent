@@ -85,13 +85,11 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release-assets | Out-Null
-          # Portable / non-installer exe → tryCustomTabyAgent.exe
           $portable = Get-ChildItem -Path "src-tauri/target/release/taby-custom-agent.exe" -ErrorAction SilentlyContinue
           if ($portable) {
             Copy-Item $portable.FullName "release-assets/tryCustomTabyAgent.exe" -Force
             Write-Host "Staged tryCustomTabyAgent.exe"
           }
-          # Installer bundles keep their names (setup .exe / .msi)
           foreach ($pat in @(
             "src-tauri/target/release/bundle/nsis/*.exe",
             "src-tauri/target/release/bundle/msi/*.msi"
@@ -121,36 +119,34 @@ jobs:
             $tag = $env:GITHUB_REF_NAME
             $title = "Custom Taby Agent $tag"
           } else {
-            # Prefer a stable v1.0.0-style tag on main when not already tagged
             $tag = "v1.0.0"
             $title = "Custom Taby Agent v1.0.0"
           }
 
-          $notes = @"
-## Custom Taby Agent v1.0.0
-
-### Install
-
-1. Download the **setup .exe** from Assets.
-2. Run it. If Windows says the app is unrecognized: **More info → Run anyway** (SmartScreen). Keep the file; it is not from the Store.
-3. Complete onboarding.
-4. Optional: Connect a Physical Taby — this can install firmware onto the device (USB first).
-
-### Also in Assets
-
-- **tryCustomTabyAgent.exe** — portable run (no installer). Same SmartScreen tip if Windows blocks it.
-
-### License
-
-Free for personal use. Not for commercial use. See LICENSE in the repo.
-
-SHA: $($env:GITHUB_SHA)
-"@
-
           $notesFile = Join-Path $env:RUNNER_TEMP "release-notes.md"
-          Set-Content -Path $notesFile -Value $notes -Encoding utf8
+          $sha = $env:GITHUB_SHA
+          $lines = @(
+            "## Custom Taby Agent v1.0.0",
+            "",
+            "### Install",
+            "",
+            "1. Download the setup .exe from Assets.",
+            "2. Run it. If Windows says the app is unrecognized: More info -> Run anyway (SmartScreen). Keep the file; it is not from the Store.",
+            "3. Complete onboarding.",
+            "4. Optional: Connect a Physical Taby - this can install firmware onto the device (USB first).",
+            "",
+            "### Also in Assets",
+            "",
+            "- tryCustomTabyAgent.exe - portable run (no installer). Same SmartScreen tip if Windows blocks it.",
+            "",
+            "### License",
+            "",
+            "Free for personal use. Not for commercial use. See LICENSE in the repo.",
+            "",
+            "SHA: $sha"
+          )
+          Set-Content -Path $notesFile -Value ($lines -join "`n") -Encoding utf8
 
-          # Remove prior release+tag if present so we republish a full Release
           gh release view $tag 2>$null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "Deleting existing release $tag"
@@ -162,19 +158,14 @@ SHA: $($env:GITHUB_SHA)
           Write-Host "Creating FULL release $tag with $($files.Count) assets"
           $files | ForEach-Object { Write-Host "  $_" }
 
-          # No --prerelease: this is a real Releases-page release
-          gh release create $tag @files `
-            --title $title `
-            --notes-file $notesFile `
-            --target $env:GITHUB_SHA `
-            --latest
+          gh release create $tag @files --title $title --notes-file $notesFile --target $env:GITHUB_SHA --latest
 
           if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
 
           $json = gh release view $tag --json url,tagName,isDraft,isPrerelease,assets
           Write-Host $json
           $obj = $json | ConvertFrom-Json
-          if (-not $obj.url) { throw "Release has no url — not on Releases page" }
+          if (-not $obj.url) { throw "Release has no url - not on Releases page" }
           if ($obj.url -notmatch "/releases/") { throw "Unexpected release URL: $($obj.url)" }
           if ($obj.isPrerelease) { throw "Release is still marked prerelease" }
           Write-Host "OK full Release URL: $($obj.url)"
