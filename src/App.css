@@ -66,15 +66,23 @@ html, body, #root {
 .hud-module-card,
 .tc-chat,
 .tc-settings {
-  max-height: none !important;
-  overflow: visible !important;
+  max-height: min(70vh, 640px) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .tc-chat__thread,
-.tc-settings__sections,
 .chat-thread {
   max-height: min(220px, 28vh) !important;
   overflow-y: auto !important;
+}
+
+.tc-settings__sections {
+  flex: 1 1 auto !important;
+  max-height: min(52vh, 480px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 
@@ -3477,4 +3485,85 @@ html, body, #root {
   margin-top: 0 !important;
   border-radius: 0 0 42px 42px !important;
   background: #000 !important;
+}
+
+
+/* ─── Settings panel layout + themed scrollbar ───────────────── */
+.tc-settings {
+  width: 100% !important;
+  max-width: 400px !important;
+  max-height: min(70vh, 640px) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+  background: rgba(20, 20, 22, 0.97) !important;
+  border-radius: 22px !important;
+  border: none !important;
+  color: #f4f4f5 !important;
+}
+
+.tc-settings__head {
+  flex: 0 0 auto;
+}
+
+.tc-settings__sections {
+  flex: 1 1 auto !important;
+  min-height: 120px !important;
+  max-height: min(52vh, 480px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 6px !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(233, 143, 120, 0.55) rgba(255, 255, 255, 0.06);
+}
+
+/* WebKit themed scrollbar (matches accent, not OS default) */
+.tc-settings__sections::-webkit-scrollbar {
+  width: 8px;
+}
+.tc-settings__sections::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+.tc-settings__sections::-webkit-scrollbar-thumb {
+  background: rgba(233, 143, 120, 0.55);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.tc-settings__sections::-webkit-scrollbar-thumb:hover {
+  background: rgba(233, 143, 120, 0.75);
+  background-clip: padding-box;
+}
+
+.tc-settings__foot {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.tc-settings__field input,
+.tc-settings__field select,
+.tc-settings__search input {
+  color: #f4f4f5 !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+}
+
+.tc-settings__sec-btn {
+  color: #f4f4f5 !important;
+}
+
+.hud-module-panel:has(.tc-settings) {
+  max-height: min(72vh, 680px) !important;
+  overflow: hidden !important;
+}
+
+/* Edge progress must paint above everything while window is preview-only */
+.hud-edge-progress {
+  z-index: 200 !important;
 }

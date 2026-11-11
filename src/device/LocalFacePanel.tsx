@@ -62,7 +62,7 @@ const CUTE_CANDIDATES = [
 const CUTE_WIGGLE = CUTE_CANDIDATES.filter((id) => Boolean(gifForAnimationId(id)));
 
 const WIGGLE_DISTANCE_PX = 110;
-const WIGGLE_COOLDOWN_MS = 5000;
+const WIGGLE_COOLDOWN_MS = 12_000;
 
 function resolveGif(id: string): { id: string; src: string } {
   const preferred = (id || "idle_01_loop").trim();
@@ -124,16 +124,14 @@ export function LocalFacePanel() {
     });
   }, []);
 
-  // Occasional fun idle activity (~ every 2 min of pure idle loops)
+  // After 2 min of normal idle only, play one cool activity, then return to idle
   useEffect(() => {
     funIdleTimer.current = setInterval(() => {
       const id = lastId.current;
-      const isIdle =
-        id.startsWith("idle") ||
-        id === "relaxing_01_loop" ||
-        id === "idle_variation_loop";
+      const isIdle = id === "idle_01_loop" || id === "idle" || id.startsWith("idle_");
       if (!isIdle) return;
-      if (Date.now() - lastActivityAt.current < IDLE_FUN_INTERVAL_MS - 5000) {
+      // Require a full 2 minutes since last non-idle / fun activity
+      if (Date.now() - lastActivityAt.current < IDLE_FUN_INTERVAL_MS) {
         return;
       }
       const pool = IDLE_FUN_CANDIDATES.filter((x) => Boolean(gifForAnimationId(x)));
@@ -142,6 +140,7 @@ export function LocalFacePanel() {
         : (["stretching", "yeah", "thumbs_up"] as const);
       const pick = candidates[Math.floor(Math.random() * candidates.length)];
       const resolved = resolveGif(pick);
+      lastActivityAt.current = Date.now();
       publishFaceState({
         animationId: resolved.id,
         label: FACE_LABELS[resolved.id] ?? resolved.id,
@@ -149,7 +148,16 @@ export function LocalFacePanel() {
         connected: true,
         force: true,
       });
-    }, IDLE_FUN_INTERVAL_MS);
+      // Best-effort push to physical device when connected
+      void import("./registry")
+        .then(({ getActiveDevice }) => {
+          const dev = getActiveDevice();
+          if (dev.getConnectionState() === "connected") {
+            return dev.play(resolved.id);
+          }
+        })
+        .catch(() => undefined);
+    }, 15_000); // check often; gate on 2 min elapsed
     return () => {
       if (funIdleTimer.current) clearInterval(funIdleTimer.current);
     };
@@ -184,17 +192,18 @@ export function LocalFacePanel() {
         });
       }, ms);
     } else if (isIdle) {
-      const clipMs = durationMsFor(DEFAULT_ANIMATION_MAP, id, 8000);
-      idleTimer.current = setTimeout(() => {
-        if (lastId.current !== id) return;
-        const nxt = nextIdle(id === "idle" ? "idle_01_loop" : id);
-        publishFaceState({
-          animationId: nxt,
-          label: FACE_LABELS[nxt] ?? "Idle",
-          at: Date.now(),
-          connected: true,
-        });
-      }, clipMs + IDLE_STILL_PAUSE_MS);
+      // Stay on a single normal idle — no rapid variant hopping
+      if (id !== "idle_01_loop") {
+        idleTimer.current = setTimeout(() => {
+          if (lastId.current !== id) return;
+          publishFaceState({
+            animationId: "idle_01_loop",
+            label: FACE_LABELS.idle_01_loop ?? "Idle",
+            at: Date.now(),
+            connected: true,
+          });
+        }, IDLE_STILL_PAUSE_MS);
+      }
     }
 
     return () => {

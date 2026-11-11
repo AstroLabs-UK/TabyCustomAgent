@@ -85,15 +85,24 @@ export function HudOverlay({
     phase === "expanded" || Boolean(modulePanel) || Boolean(activeModuleId);
   const visible = phase !== "hidden" || Boolean(activeModuleId);
   const expanded = phase === "expanded";
+  /** Progress-only preview while dwelling open (window up, HUD content still hidden) */
+  const showOpenProgress = Boolean(edgeBar && edgeBar.mode === "open" && phase === "hidden");
 
-  // Show / hide window; height is fit-to-content via ResizeObserver below
+  // One window: show for full HUD or open-progress bar; never open a second
   useEffect(() => {
-    if (!visible) {
-      void applyOverlayMode("hidden");
+    if (visible) {
+      void applyOverlayMode("compact");
       return;
     }
-    void applyOverlayMode("compact");
-  }, [visible]);
+    if (showOpenProgress) {
+      // Thin top strip so the open progress bar is visible before the HUD
+      void import("../overlay/windowChrome").then(({ fitOverlayToContent }) =>
+        fitOverlayToContent(28, 320)
+      );
+      return;
+    }
+    void applyOverlayMode("hidden");
+  }, [visible, showOpenProgress]);
 
   /** Locked face scale — shrink when needed, only grow when UI gets shorter. */
   const faceScaleRef = useRef(1);
