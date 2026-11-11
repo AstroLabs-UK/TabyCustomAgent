@@ -52,8 +52,8 @@ html, body, #root {
 }
 
 .local-face-panel {
-  width: calc(100% * var(--face-scale, 1)) !important;
-  max-width: 400px !important;
+  width: calc(75% * var(--face-scale, 1)) !important;
+  max-width: 300px !important;
   margin-left: auto !important;
   margin-right: auto !important;
   flex: 0 0 auto !important;
@@ -3114,16 +3114,18 @@ html, body, #root {
 }
 
 
-/* Face — no outline / black box; transparent frame */
+/* Face island — black island, open top into screen, sweep bottom */
 .local-face-panel,
 .overlay-root .local-face-panel,
 .hud-stage--stack .local-face-panel {
-  background: transparent !important;
-  border: none;
-  box-shadow: none !important;
+  background: #000 !important;
+  border: none !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
   outline: none !important;
-  border-radius: 0 !important;
-  overflow: visible !important;
+  border-radius: 0 0 42px 42px !important;
+  overflow: hidden !important;
+  width: calc(75% * var(--face-scale, 1)) !important;
+  max-width: 300px !important;
 }
 
 .local-face-frame {
@@ -3189,19 +3191,22 @@ html, body, #root {
   color: #f4f4f5 !important;
 }
 
-/* Liquid glass shell for HUD stage + panels */
-.hud-stage--stack,
+/* Liquid glass for panels only — stage stays chromeless */
+.hud-stage--stack {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
 .hud-nav-panel,
 .tc-chat,
 .tc-settings,
 .hud-module-card {
-  background: rgba(28, 28, 32, 0.72) !important;
-  backdrop-filter: blur(22px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+  background: rgba(20, 20, 22, 0.96) !important;
+  backdrop-filter: blur(18px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
+  border: none !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Status / thinking strip — muted, readable */
@@ -3297,4 +3302,122 @@ html, body, #root {
   color: rgba(244, 244, 245, 0.55);
   margin: 6px 0 10px;
   line-height: 1.4;
+}
+
+/* ─── v1.0.1 HUD: face island, edge progress, slide menu ───────── */
+
+/* Top-edge dwell / dismiss progress (grey -> white open, white -> grey close) */
+.hud-edge-progress {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(280px, 55vw);
+  height: 3px;
+  z-index: 80;
+  pointer-events: none;
+  border-radius: 0 0 3px 3px;
+  background: rgba(120, 120, 128, 0.55);
+  overflow: hidden;
+}
+.hud-edge-progress__fill {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+}
+.hud-edge-progress--open .hud-edge-progress__fill {
+  background: #f4f4f5;
+  animation: hud-edge-fill-open var(--edge-ms, 500ms) linear forwards;
+}
+.hud-edge-progress--close {
+  background: rgba(244, 244, 245, 0.35);
+}
+.hud-edge-progress--close .hud-edge-progress__fill {
+  background: rgba(120, 120, 128, 0.9);
+  width: 100%;
+  animation: hud-edge-fill-close var(--edge-ms, 3000ms) linear forwards;
+}
+@keyframes hud-edge-fill-open {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+@keyframes hud-edge-fill-close {
+  from { width: 100%; background: #f4f4f5; }
+  to { width: 0%; background: rgba(120, 120, 128, 0.9); }
+}
+
+/* Face island — ~25% smaller, top sweeps into screen edge (not a closed pill) */
+.hud-stage--stack .local-face-panel,
+.local-face-panel {
+  width: 75% !important;
+  max-width: 300px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  /* Flat / open toward top of screen; large sweep on the bottom corners */
+  border-radius: 0 0 42px 42px !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+  background: #000 !important;
+  overflow: hidden !important;
+}
+
+/* No outer chrome around the stage — only islands (face + menus) */
+.hud-stage--stack,
+.hud-stage--overlay,
+.hud-stage {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  gap: 10px !important;
+}
+
+.hud-backdrop--overlay {
+  background: transparent !important;
+}
+
+/* Prompt + nav as soft black islands (reference) */
+.hud-compact {
+  background: rgba(20, 20, 22, 0.96) !important;
+  border: none !important;
+  border-radius: 28px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4) !important;
+}
+
+.hud-nav-panel,
+.hud-nav-panel--official {
+  background: rgba(20, 20, 22, 0.96) !important;
+  border: none !important;
+  border-radius: 22px !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4) !important;
+  animation: hud-menu-slide-down 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hud-module-panel,
+.hud-module-card {
+  border: none !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4) !important;
+  animation: hud-menu-slide-down 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hud-menu-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .hud-edge-progress__fill,
+  .hud-nav-panel,
+  .hud-module-panel,
+  .hud-module-card {
+    animation: none !important;
+  }
 }

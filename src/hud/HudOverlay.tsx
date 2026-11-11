@@ -51,8 +51,15 @@ export function HudOverlay({
   const leaveHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [faceScale, setFaceScale] = useState(1);
+  /** 0..1 top edge bar; mode open = grey->white, close = white->grey */
+  const [edgeBar, setEdgeBar] = useState<{
+    mode: "open" | "close";
+    key: number;
+    ms: number;
+  } | null>(null);
 
   const openCompact = useCallback(() => {
+    setEdgeBar(null);
     setPhase((p) => reduceHudPhase(p, { type: "dwell_complete" }));
   }, []);
 
@@ -235,11 +242,15 @@ export function HudOverlay({
   function handleHotEnter() {
     if (phase === "hidden") {
       timerRef.current?.pointerEnter();
+      setEdgeBar({ mode: "open", key: Date.now(), ms: Math.max(120, dwellMs) });
     }
   }
 
   function handleHotLeave() {
     timerRef.current?.pointerLeave();
+    if (phase === "hidden") {
+      setEdgeBar(null);
+    }
   }
 
   /** Click on the dim/empty area around the stack */
@@ -278,17 +289,21 @@ export function HudOverlay({
 
   function handleStagePointerEnter() {
     clearLeaveHide();
+    setEdgeBar(null);
   }
 
   function handleStagePointerLeave() {
     clearLeaveHide();
+    const ms = Math.max(300, leaveHideMs);
+    setEdgeBar({ mode: "close", key: Date.now(), ms });
     leaveHideTimer.current = setTimeout(() => {
       // Leaving the HUD closes menus/modules and hides (even if dropdown open)
       hasDismissedOnce.current = true;
       onCloseModule?.();
       setPhase("hidden");
+      setEdgeBar(null);
       timerRef.current?.pointerLeave();
-    }, Math.max(300, leaveHideMs));
+    }, ms);
   }
 
 
@@ -321,6 +336,16 @@ export function HudOverlay({
         onPointerLeave={handleHotLeave}
         aria-hidden
       />
+      {edgeBar && (
+        <div
+          className={`hud-edge-progress hud-edge-progress--${edgeBar.mode}`}
+          key={edgeBar.key}
+          style={{ ["--edge-ms" as string]: `${edgeBar.ms}ms` }}
+          aria-hidden
+        >
+          <div className="hud-edge-progress__fill" />
+        </div>
+      )}
 
       {visible && (
         <div
