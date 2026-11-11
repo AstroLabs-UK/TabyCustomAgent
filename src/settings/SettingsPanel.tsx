@@ -2,6 +2,7 @@ import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import type { AppSettings } from "./types";
 import { PROVIDER_PRESETS, type AiProviderId } from "../ai/types";
 import type { DeviceTransport } from "../device/types";
+import { LicenseView } from "./LicenseView";
 
 export type SettingsPanelProps = {
   settings: AppSettings;
@@ -17,7 +18,7 @@ export type SettingsPanelProps = {
   onConnectTransport?: () => void;
 };
 
-type SectionId = "ai" | "face" | "activation" | "device" | "advanced";
+type SectionId = "ai" | "face" | "activation" | "device" | "license" | "advanced";
 
 const SECTIONS: {
   id: SectionId;
@@ -48,6 +49,12 @@ const SECTIONS: {
     title: "Device",
     blurb: "Mock or Physical Taby transport",
     keywords: "device ble usb wifi mock connect hardware",
+  },
+  {
+    id: "license",
+    title: "License",
+    blurb: "Personal use terms and credits",
+    keywords: "license legal commercial personal credits firmware-taby",
   },
   {
     id: "advanced",
@@ -385,6 +392,8 @@ export function SettingsPanel({
                       ) : null}
                     </>
                   )}
+
+                  {sec.id === "license" && <LicenseView />}
 
                   {sec.id === "advanced" && (
                     <>

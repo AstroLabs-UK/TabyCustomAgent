@@ -1,7 +1,7 @@
 {
   "name": "taby-custom-agent",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Taby Custom Agent \u2014 local overlay agent",
   "scripts": {

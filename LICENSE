@@ -1,0 +1,34 @@
+Custom Taby Agent License
+Copyright (c) 2026 Lucas Stevens <lucas@astrolabs.uk>
+
+Permission is granted to use, copy, and run this software free of charge for
+personal, non-commercial purposes only.
+
+You may NOT, without prior written approval from Lucas Stevens
+(lucas@astrolabs.uk):
+
+  1. Use this software for commercial purposes (including selling, SaaS,
+     paid consulting built primarily on this software, or redistribution
+     for a fee).
+  2. Change the product name, branding, or stated purpose of the software.
+  3. Publish a modified version under a different name or as a competing
+     product without written approval.
+
+You MAY modify the software for personal use on your own machines.
+
+Attribution — face animations and related GIF assets:
+  Face animations and related assets are derived from or inspired by work in
+  https://github.com/TRIIIS-LABS/firmware-taby
+  Those assets remain subject to the upstream project’s own license terms.
+  This project does not claim ownership of upstream Taby artwork.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+For commercial licensing or rename/rebrand approval, contact:
+  Lucas Stevens — lucas@astrolabs.uk

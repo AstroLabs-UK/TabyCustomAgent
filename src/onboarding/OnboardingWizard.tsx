@@ -222,38 +222,60 @@ export function OnboardingWizard({
         )}
 
         {current.id === "device_kind" && (
-          <div className="tc-onboard__choices">
-            <label className="tc-onboard__check">
-              <input
-                type="radio"
-                name="phys"
-                checked={!settings.hasPhysicalTaby}
-                onChange={() =>
-                  setSettings((s) => ({
-                    ...s,
-                    hasPhysicalTaby: false,
-                    device: { ...s.device, transport: "mock" },
-                  }))
-                }
-              />
-              <span>On-screen face only</span>
-            </label>
-            <label className="tc-onboard__check">
-              <input
-                type="radio"
-                name="phys"
-                checked={!!settings.hasPhysicalTaby}
-                onChange={() =>
-                  setSettings((s) => ({
-                    ...s,
-                    hasPhysicalTaby: true,
-                    device: { ...s.device, transport: "usb" },
-                  }))
-                }
-              />
-              <span>I have a Physical Taby</span>
-            </label>
-          </div>
+          <>
+            <div className="tc-onboard__choices">
+              <label className="tc-onboard__check">
+                <input
+                  type="radio"
+                  name="phys"
+                  checked={!settings.hasPhysicalTaby}
+                  onChange={() =>
+                    setSettings((s) => ({
+                      ...s,
+                      hasPhysicalTaby: false,
+                      device: { ...s.device, transport: "mock" },
+                    }))
+                  }
+                />
+                <span>On-screen face only</span>
+              </label>
+              <label className="tc-onboard__check">
+                <input
+                  type="radio"
+                  name="phys"
+                  checked={!!settings.hasPhysicalTaby}
+                  onChange={() =>
+                    setSettings((s) => ({
+                      ...s,
+                      hasPhysicalTaby: true,
+                      device: { ...s.device, transport: "usb" },
+                    }))
+                  }
+                />
+                <span>I have a Physical Taby</span>
+              </label>
+            </div>
+            <p className="tc-onboard__body" style={{ fontSize: "0.85rem" }}>
+              <a
+                href="https://github.com/TRIIIS-LABS/Custom-Taby-Agent/blob/main/docs/PHYSICAL_TABY.md"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Make a Physical Taby
+              </a>
+              {" — "}
+              build guide + how to connect it to <em>this</em> app (not official
+              Hey Taby). Upstream firmware:{" "}
+              <a
+                href="https://github.com/TRIIIS-LABS/firmware-taby"
+                target="_blank"
+                rel="noreferrer"
+              >
+                firmware-taby
+              </a>
+              .
+            </p>
+          </>
         )}
 
         {current.id === "usb_setup" && (
