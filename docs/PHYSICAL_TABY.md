@@ -1,44 +1,111 @@
-# Build a Physical Taby for Custom Taby Agent
+# Physical Taby for Custom Taby Agent
 
-This guide is for **Custom Taby Agent** (this app), not the official Hey Taby cloud app.
+**Your Taby, on your desk — driven by [Custom Taby Agent](https://github.com/AstroLabs-UK/TabyCustomAgent), not the official Hey Taby cloud.**
 
-Hardware firmware and print files come from the open [firmware-taby](https://github.com/TRIIIS-LABS/firmware-taby) project. Face GIFs and animations are acknowledged from that upstream work.
+Hardware firmware, animations, and case files come from the open upstream project  
+[TRIIIS-LABS/firmware-taby](https://github.com/TRIIIS-LABS/firmware-taby).  
+Face GIFs used in this app acknowledge that work.
 
-## 1. Get a board
+**Let’s make one:**  
+[1. Choose your board](#1-choose-your-board) →  
+[2. Install the firmware](#2-install-the-firmware) →  
+[3. Connect to Custom Taby Agent](#3-connect-to-custom-taby-agent) →  
+[4. Print a case](#4-print-a-case)
 
-You need a supported board and a **USB data cable** (not charge-only).
+---
+
+## 1. Choose your board
+
+You’ll need a supported board and a **USB data cable** (not charge-only).
 
 | Model | Board | Notes |
 |-------|--------|--------|
-| Taby 1.64 (recommended) | [Waveshare ESP32-S3-Touch-AMOLED-1.64](https://www.waveshare.com/esp32-s3-touch-amoled-1.64.htm) | 280×456 AMOLED, full animation pack |
-| Taby Round 1.32 | Waveshare ESP32-S3-Touch-AMOLED-1.32 | Smaller pack |
+| **Taby 1.64** (recommended) | [Waveshare ESP32-S3-Touch-AMOLED-1.64](https://www.waveshare.com/esp32-s3-touch-amoled-1.64.htm) | Rectangular · 280×456 AMOLED · full animation pack |
+| **Taby Round 1.32** | [Waveshare ESP32-S3-Touch-AMOLED-1.32](https://www.waveshare.com/esp32-s3-touch-amoled-1.32.htm) | Round · 466×466 · smaller pack · case coming soon |
 
-Upstream install notes: [INSTALL.md](https://github.com/TRIIIS-LABS/firmware-taby/blob/main/INSTALL.md)
+More screens may appear upstream. Check [board compatibility](https://github.com/TRIIIS-LABS/firmware-taby/blob/main/INSTALL.md) before buying.
 
-## 2. Install firmware (first time)
+---
 
-1. Plug the board into this PC with USB.
-2. Prefer **Custom Taby Agent → Settings → Device → USB → Run USB setup** when available (pushes runtime, reads BLE MAC, can write Wi‑Fi from the desktop).
-3. Or follow upstream flash steps in [firmware-taby INSTALL](https://github.com/TRIIIS-LABS/firmware-taby/blob/main/INSTALL.md), then come back here to pair with **this** app.
+## 2. Install the firmware
 
-After a successful flash you should see animations on the screen.
+Plug the board into **this PC** with the USB data cable.
 
-## 3. Connect to Custom Taby Agent (not official Taby)
+### Option A — Custom Taby Agent (preferred when ready)
 
 1. Open **Custom Taby Agent**.
-2. Finish onboarding or open **Settings → Device**.
-3. **USB first:** Run USB setup so the app stores the device BLE MAC / serial.
-4. Switch transport to **BLE** for day-to-day use (close any official Hey Taby app if it holds the device).
-5. Optional: set **Wi‑Fi** IP under Device if you use LAN `/cmd`.
+2. **Settings → Device → USB** (or onboarding → Physical Taby → USB setup).
+3. Enter your Wi‑Fi **SSID** if you want it written from the desktop.
+4. Click **Run USB setup**.
 
-You should **not** need to pair through the official Hey Taby cloud for this custom agent.
+The app is designed to push runtime/assets, read the **BLE MAC / serial**, and store them so you don’t type on the screen. Until real USB flash is fully wired, you can still use Option B, then pair in the app.
 
-## 4. Case (optional)
+### Option B — Upstream flash (works today)
 
-Print packs and magnet notes live upstream:  
-[hardware README](https://github.com/TRIIIS-LABS/firmware-taby/blob/main/hardware/README.md)
+Follow the official firmware install guide:
+
+**[firmware-taby INSTALL.md](https://github.com/TRIIIS-LABS/firmware-taby/blob/main/INSTALL.md)**
+
+Or ask a local AI agent:
+
+```text
+Help me install Physical Taby on my connected device.
+Read and follow this guide:
+https://github.com/TRIIIS-LABS/firmware-taby/blob/main/INSTALL.md
+
+Install any missing USB/ESP32 tools and list the connected ports. If Taby is
+already running, read its board metadata. For a blank board or vendor demo,
+identify the exact board/revision from its marking or ask me when uncertain;
+do not require device identify to succeed before the first flash. Install
+the complete matching release, verify it, and play an animation so I can
+check the screen.
+Then help me connect it to Custom Taby Agent
+(https://github.com/AstroLabs-UK/TabyCustomAgent) — not the official Hey Taby app.
+```
+
+Current upstream firmware releases:  
+https://github.com/TRIIIS-LABS/firmware-taby/releases  
+
+After a good flash you should see animations on the screen.
+
+---
+
+## 3. Connect to Custom Taby Agent
+
+This is the important difference from the upstream README: you pair with **this** desktop app.
+
+1. Install/open **[Custom Taby Agent](https://github.com/AstroLabs-UK/TabyCustomAgent/releases)** and finish onboarding.
+2. **Settings → Device**
+   - **USB first:** Run USB setup (or enter BLE MAC if you already flashed with Option B).
+   - Switch transport to **BLE** for day-to-day use.
+   - Optional: **Wi‑Fi** IP for LAN `/cmd` fallback.
+3. Close **official Hey Taby** if it’s open — it can hold the BLE connection.
+4. Trigger a chat reply or reaction and confirm the face moves.
+
+You do **not** need the official Hey Taby cloud account for Custom Taby Agent.
+
+Device command reference (upstream):  
+[Talk to Taby](https://github.com/TRIIIS-LABS/firmware-taby/blob/main/firmware/README.md#talk-to-taby)
+
+---
+
+## 4. Print a case
+
+Cases and print packs are upstream:
+
+- [Print pack (Taby 1.64)](https://github.com/TRIIIS-LABS/firmware-taby/releases/download/prints-1.64-1.0.0/taby-1.64-print-pack-1.0.0.zip)
+- [Printing guide](https://github.com/TRIIIS-LABS/firmware-taby/blob/main/hardware/README.md)
+
+For the 1.64 desktop case you’ll typically want an **extra-strong neodymium block magnet, 20 × 10 × 2 mm**, and **self-adhesive rubber grip** over the magnet face (see upstream magnet notes).
+
+---
 
 ## Credits
 
-- Firmware, cases, and original animation packs: [TRIIIS-LABS/firmware-taby](https://github.com/TRIIIS-LABS/firmware-taby)
-- Desktop agent and custom integration: Lucas Stevens / this repository
+| Piece | Source |
+|-------|--------|
+| Firmware, cases, original animation packs | [TRIIIS-LABS/firmware-taby](https://github.com/TRIIIS-LABS/firmware-taby) |
+| Desktop agent, custom BLE/USB/Wi‑Fi integration | [AstroLabs-UK/TabyCustomAgent](https://github.com/AstroLabs-UK/TabyCustomAgent) |
+
+Upstream code/mechanics: Apache-2.0. Upstream artwork has its own terms — keep it Taby; don’t rebrand the face as a different character.  
+This app’s license: see [LICENSE](../LICENSE) (personal non-commercial; commercial / rename needs written approval).

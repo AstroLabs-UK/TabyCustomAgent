@@ -2,9 +2,11 @@
 
 Local desktop overlay agent (Hey Taby–inspired) using **your** AI (Groq by default), not the official Taby cloud. Optional Physical Taby over BLE / USB / Wi‑Fi.
 
+**Repo:** [AstroLabs-UK/TabyCustomAgent](https://github.com/AstroLabs-UK/TabyCustomAgent)
+
 ## Install (Windows)
 
-1. Download the **setup .exe** from [Releases](../../releases).
+1. Download the **setup .exe** from [Releases](https://github.com/AstroLabs-UK/TabyCustomAgent/releases).
 2. Run it. If Windows says the app is unrecognized: **More info → Run anyway** (SmartScreen).
 3. Complete onboarding.
 4. Optional: connect a Physical Taby (USB first — can install firmware onto the device).
@@ -13,7 +15,7 @@ Portable build: **tryCustomTabyAgent.exe** in the same release assets.
 
 ## Platforms
 
-- **Windows 10/11** — primary; GitHub Actions builds NSIS setup + portable exe
+- **Windows 10/11** — primary; GitHub Actions builds setup + portable exe
 - **Linux** — core + tests
 
 ## Quick start (dev)
@@ -28,7 +30,12 @@ API keys stay in Settings on your machine only.
 
 ## Physical Taby
 
-See **[docs/PHYSICAL_TABY.md](docs/PHYSICAL_TABY.md)** — how to build a device and connect it to **this** app (not official Hey Taby). Hardware/firmware upstream: [TRIIIS-LABS/firmware-taby](https://github.com/TRIIIS-LABS/firmware-taby).
+Full guide (board → firmware → **connect to this app** → case):
+
+**[docs/PHYSICAL_TABY.md](docs/PHYSICAL_TABY.md)**
+
+Hardware/firmware upstream: [TRIIIS-LABS/firmware-taby](https://github.com/TRIIIS-LABS/firmware-taby)  
+(adapted so step 3 pairs with Custom Taby Agent, not official Hey Taby.)
 
 ## License
 
@@ -38,8 +45,8 @@ Personal, non-commercial use free. Commercial use or renaming/rebranding require
 
 | File | Role |
 |------|------|
-| `TABY_ROADMAP.md` | Stages |
+| [docs/PHYSICAL_TABY.md](docs/PHYSICAL_TABY.md) | Build + pair Physical Taby |
+| [docs/FUTURE.md](docs/FUTURE.md) | Backlog |
 | `TABY_SYSTEM_MAP.md` | Architecture map |
-| `docs/PHYSICAL_TABY.md` | Build + pair Physical Taby |
-| `docs/FUTURE.md` | Backlog |
+| `TABY_ROADMAP.md` | Stages |
 | `DEV_WORKFLOW.md` | Agent workflow |

@@ -257,7 +257,7 @@ export function OnboardingWizard({
             </div>
             <p className="tc-onboard__body" style={{ fontSize: "0.85rem" }}>
               <a
-                href="https://github.com/TRIIIS-LABS/Custom-Taby-Agent/blob/main/docs/PHYSICAL_TABY.md"
+                href="https://github.com/AstroLabs-UK/TabyCustomAgent/blob/main/docs/PHYSICAL_TABY.md"
                 target="_blank"
                 rel="noreferrer"
               >
