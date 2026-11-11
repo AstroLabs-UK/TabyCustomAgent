@@ -58,7 +58,7 @@ html, body, #root {
   margin-left: auto !important;
   margin-right: auto !important;
   flex: 0 0 auto !important;
-  transition: width 0.15s ease;
+  transition: none;
 }
 
 .hud-module-panel,

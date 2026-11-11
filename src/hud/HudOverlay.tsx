@@ -88,17 +88,28 @@ export function HudOverlay({
   /** Progress-only preview while dwelling open (window up, HUD content still hidden) */
   const showOpenProgress = Boolean(edgeBar && edgeBar.mode === "open" && phase === "hidden");
 
-  // One window: show for full HUD or open-progress bar; never open a second
+  // One window: progress strip OR full HUD — never thrash between sizes mid-open
+  const settleLock = useRef(false);
   useEffect(() => {
     if (visible) {
-      void applyOverlayMode("compact");
+      // Lock resize for a short settle so we don't oscillate faceScale/window
+      settleLock.current = true;
+      void applyOverlayMode("compact").finally(() => {
+        window.setTimeout(() => {
+          settleLock.current = false;
+          // One refined fit after layout paints
+          const el = stageRef.current;
+          if (el) {
+            const r = el.getBoundingClientRect();
+            void fitOverlayToContent(r.height, Math.max(r.width, 320));
+          }
+        }, 280);
+      });
       return;
     }
     if (showOpenProgress) {
-      // Thin top strip so the open progress bar is visible before the HUD
-      void import("../overlay/windowChrome").then(({ fitOverlayToContent }) =>
-        fitOverlayToContent(28, 320)
-      );
+      // Fixed thin strip — do not keep re-fitting during countdown
+      void fitOverlayToContent(12, 280);
       return;
     }
     void applyOverlayMode("hidden");
@@ -120,6 +131,7 @@ export function HudOverlay({
 
     const measure = () => {
       if (measuring) return;
+      if (settleLock.current) return;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         measuring = true;
@@ -155,7 +167,8 @@ export function HudOverlay({
 
           if (Math.abs(next - current) > 0.02) {
             faceScaleRef.current = next;
-            setFaceScale(next);
+            // Avoid micro updates that shake the layout
+            if (Math.abs(next - current) >= 0.04) setFaceScale(next);
           }
 
           // Fit window after layout settles
